@@ -1,6 +1,7 @@
 import time
 import json
 import os
+from azure.iot.device import IoTHubDeviceClient, Message
 
 # Try to import Raspberry Pi GPIO library; if unavailable, use virtual mode
 try:
@@ -68,6 +69,7 @@ def detect_sound():
                 print("Real Sound Detected!")
                 log_sound_event("real_sound")
                 send_data_to_cloud("real_sound")
+                send_data_to_azure("real_sound")
                 time.sleep(0.3)  
                 return "real_sound"
             time.sleep(0.1)
@@ -80,19 +82,40 @@ def detect_sound():
                 if event.name == 'b':  
                     print("Simulated Bark Detected!")
                     log_sound_event("bark")
-                    send_data_to_cloud("bark") 
+                    send_data_to_cloud("bark")
+                    send_data_to_azure("bark")
                     time.sleep(0.3)  
                     return "bark"
                 elif event.name == 'c':
                     print("Simulated Car Noise Detected!")
                     log_sound_event("car_noise")
-                    send_data_to_cloud("car_noise")  
+                    send_data_to_cloud("car_noise")
+                    send_data_to_azure("car_noise")
                     time.sleep(0.3)
                     return "car_noise"
                 elif event.name == 'x':
                     print("Exiting virtual sound detection.")
                     break
             time.sleep(0.1)
+
+# Azure IoT Hub connection string
+CONNECTION_STRING = "HostName=IoTPawTrack.azure-devices.net;DeviceId=collar01;SharedAccessKey=ShzFs2jgI06rAjksNrEst8Byb8x2ljbHrBGYT+raQ1E="
+
+def send_data_to_azure(event):
+    """Send detected sound event to Azure IoT Hub."""
+    try:
+        client = IoTHubDeviceClient.create_from_connection_string(CONNECTION_STRING)
+        payload = json.dumps({
+            "sensor": "acoustic",
+            "event": event,
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+        })
+        message = Message(payload)
+        client.send_message(message)
+        print(f"Sent event to Azure IoT Hub: {payload}")
+        client.disconnect()
+    except Exception as e:
+        print(f"Failed to send event to Azure IoT Hub: {e}")
 
 if __name__ == "__main__":
     try:
