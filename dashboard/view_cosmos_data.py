@@ -32,12 +32,19 @@ for item in container.query_items(query="SELECT * FROM c", enable_cross_partitio
             if sensor_type == "acoustic":
                 event = decoded_json.get("event", "unknown_event")
                 print(f"📅 {timestamp} | 🔊 Event: {event} | 🎙️ Sensor: Acoustic")
+
             elif sensor_type == "gps":
                 lat = decoded_json.get("latitude", "N/A")
                 lon = decoded_json.get("longitude", "N/A")
                 print(f"📅 {timestamp} | 🛰️ GPS Location: ({lat}, {lon})")
+
+            elif sensor_type in ["led_light_sensor", "simulated_led_light"]:
+                lux = decoded_json.get("lux", "N/A")
+                print(f"📅 {timestamp} | 💡 Light Level: {lux} lux | 💡 Sensor: {sensor_type}")
+
             else:
                 print(f"📅 {timestamp} | ❓ Unknown sensor type: {sensor_type}")
+
         except Exception as e:
             print(f"⚠️ Error decoding message: {e}")
     else:
