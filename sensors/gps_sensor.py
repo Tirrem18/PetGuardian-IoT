@@ -26,7 +26,7 @@ DATABASE_NAME = "iotdata"
 CONTAINER_NAME = "telemetry"
 
 # MQTT
-BROKER = "test.mosquitto.org"
+BROKER = "broker.hivemq.com"
 TOPIC = "petguardian/gps"
 
 # Cosmos DB client
@@ -128,7 +128,7 @@ def gps_tracking():
         send_data_to_mqtt(location)
         send_data_to_azure(location)
         send_data_to_cosmos(location)
-        time.sleep(5)
+        time.sleep(10)
 
 if __name__ == "__main__":
     try:

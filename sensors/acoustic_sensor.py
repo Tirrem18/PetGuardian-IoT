@@ -21,7 +21,7 @@ if REAL_SENSOR:
 
 import paho.mqtt.client as mqtt
 
-BROKER = "test.mosquitto.org"  # Free MQTT broker
+BROKER = "broker.hivemq.com"  # Free MQTT broker
 TOPIC = "petguardian/iot"
 
 def send_data_to_cloud(event):
