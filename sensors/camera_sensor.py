@@ -24,7 +24,7 @@ TOPIC = "petguardian/camera"
 SAVE_DIR = "captured_images"
 
 # Azure Config
-IOTHUB_CONNECTION_STRING = "your-iothub-connection-string"
+IOTHUB_CONNECTION_STRING = "HostName=IoTPawTrack.azure-devices.net;DeviceId=collar01;SharedAccessKey=ShzFs2jgI06rAjksNrEst8Byb8x2ljbHrBGYT+raQ1E="
 COSMOS_URI = "https://petguardiandb.documents.azure.com:443/"
 COSMOS_KEY = "gb0rv4z3It79ncyssNJmhHj8mDY8eUBcZPYBfACM9GPWXbf1m2IoIxDgwUQ7dcWfyUJOxUUnSncKACDb44Qynw=="
 DATABASE_NAME = "iotdata"
