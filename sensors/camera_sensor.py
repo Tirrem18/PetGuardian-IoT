@@ -86,10 +86,11 @@ def send_data_all(image_path):
         encoded_doc = base64.b64encode(payload_json.encode('utf-8')).decode('utf-8')
         doc = {
             "id": str(uuid.uuid4()),
-            "Body": encoded_doc,
-            "deviceId": "collar01",
-            "timestamp": timestamp
-        }
+            "sensor": "camera",
+            "timestamp": timestamp,
+            "image_base64": encoded_img,
+            "deviceId": "collar01"
+            }
         container.create_item(body=doc)
         print("✅ Sent to Cosmos DB")
     except Exception as e:
