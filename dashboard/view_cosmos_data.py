@@ -26,25 +26,30 @@ items_found = False
 # Query and process all telemetry items
 for item in container.query_items(query="SELECT * FROM c", enable_cross_partition_query=True):
     items_found = True
-    sensor_type = item.get("sensor", "unknown")
-    timestamp = item.get("timestamp", "N/A")
 
     try:
+        # Decode base64 Body field
+        body_encoded = item.get("Body", "")
+        body_decoded = json.loads(base64.b64decode(body_encoded).decode('utf-8'))
+
+        sensor_type = body_decoded.get("sensor", "unknown")
+        timestamp = body_decoded.get("timestamp", item.get("timestamp", "N/A"))
+
         if sensor_type == "acoustic":
-            event = item.get("event", "unknown_event")
+            event = body_decoded.get("event", "unknown_event")
             print(f"📅 {timestamp} | 🔊 Acoustic Event: {event}")
 
         elif sensor_type == "gps":
-            lat = item.get("latitude", "N/A")
-            lon = item.get("longitude", "N/A")
+            lat = body_decoded.get("latitude", "N/A")
+            lon = body_decoded.get("longitude", "N/A")
             print(f"📅 {timestamp} | 🛰️ GPS Location: ({lat}, {lon})")
 
-        elif sensor_type in ["led_light_sensor", "simulated_led_light"]:
-            lux = item.get("lux", "N/A")
+        elif sensor_type in ["light", "led_light_sensor", "simulated_led_light"]:
+            lux = body_decoded.get("lux", "N/A")
             print(f"📅 {timestamp} | 💡 Light Level: {lux} lux | Sensor: {sensor_type}")
 
         elif sensor_type == "camera":
-            image_data = item.get("image_base64")
+            image_data = body_decoded.get("image_base64")
             if image_data:
                 image_bytes = base64.b64decode(image_data)
                 filename = f"images/camera_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
@@ -58,7 +63,7 @@ for item in container.query_items(query="SELECT * FROM c", enable_cross_partitio
             print(f"📅 {timestamp} | ❓ Unknown sensor type: {sensor_type}")
 
     except Exception as e:
-        print(f"⚠️ Error processing item at {timestamp}: {e}")
+        print(f"⚠️ Error processing item: {e}")
 
 if not items_found:
     print("🚫 No telemetry items found in the container.")
