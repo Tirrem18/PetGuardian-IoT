@@ -28,9 +28,20 @@ for item in container.query_items(query="SELECT * FROM c", enable_cross_partitio
     items_found = True
 
     try:
-        # Decode base64 Body field
         body_encoded = item.get("Body", "")
-        body_decoded = json.loads(base64.b64decode(body_encoded).decode('utf-8'))
+
+        # Skip if Body is missing or empty
+        if not body_encoded.strip():
+            print("⚠️ Skipping item with empty Body field.")
+            continue
+
+        # Try to decode and parse Body as JSON
+        try:
+            body_json = base64.b64decode(body_encoded).decode("utf-8")
+            body_decoded = json.loads(body_json)
+        except Exception as decode_err:
+            print(f"⚠️ Skipping invalid Body (not base64 or JSON): {decode_err}")
+            continue
 
         sensor_type = body_decoded.get("sensor", "unknown")
         timestamp = body_decoded.get("timestamp", item.get("timestamp", "N/A"))
@@ -63,7 +74,7 @@ for item in container.query_items(query="SELECT * FROM c", enable_cross_partitio
             print(f"📅 {timestamp} | ❓ Unknown sensor type: {sensor_type}")
 
     except Exception as e:
-        print(f"⚠️ Error processing item: {e}")
+        print(f"⚠️ Unexpected error processing item: {e}")
 
 if not items_found:
     print("🚫 No telemetry items found in the container.")
