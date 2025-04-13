@@ -91,6 +91,7 @@ def send_data_all(image_path):
             "image_base64": encoded_img,
             "deviceId": "collar01"
             }
+        
         container.create_item(body=doc)
         print("✅ Sent to Cosmos DB")
     except Exception as e:
