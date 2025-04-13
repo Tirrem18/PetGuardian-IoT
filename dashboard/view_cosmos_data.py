@@ -26,52 +26,39 @@ items_found = False
 # Query and process all telemetry items
 for item in container.query_items(query="SELECT * FROM c", enable_cross_partition_query=True):
     items_found = True
-    base64_body = item.get("Body")
+    sensor_type = item.get("sensor", "unknown")
     timestamp = item.get("timestamp", "N/A")
 
-    if base64_body:
-        try:
-            # Decode the base64 Body content into JSON
-            decoded_json = json.loads(base64.b64decode(base64_body).decode("utf-8"))
-            sensor_type = decoded_json.get("sensor", "unknown")
+    try:
+        if sensor_type == "acoustic":
+            event = item.get("event", "unknown_event")
+            print(f"📅 {timestamp} | 🔊 Acoustic Event: {event}")
 
-            # Acoustic sensor
-            if sensor_type == "acoustic":
-                event = decoded_json.get("event", "unknown_event")
-                print(f"📅 {timestamp} | 🔊 Acoustic Event: {event}")
+        elif sensor_type == "gps":
+            lat = item.get("latitude", "N/A")
+            lon = item.get("longitude", "N/A")
+            print(f"📅 {timestamp} | 🛰️ GPS Location: ({lat}, {lon})")
 
-            # GPS sensor
-            elif sensor_type == "gps":
-                lat = decoded_json.get("latitude", "N/A")
-                lon = decoded_json.get("longitude", "N/A")
-                print(f"📅 {timestamp} | 🛰️ GPS Location: ({lat}, {lon})")
+        elif sensor_type in ["led_light_sensor", "simulated_led_light"]:
+            lux = item.get("lux", "N/A")
+            print(f"📅 {timestamp} | 💡 Light Level: {lux} lux | Sensor: {sensor_type}")
 
-            # Light sensors
-            elif sensor_type in ["led_light_sensor", "simulated_led_light"]:
-                lux = decoded_json.get("lux", "N/A")
-                print(f"📅 {timestamp} | 💡 Light Level: {lux} lux | Sensor: {sensor_type}")
-
-            # Camera/image sensor
-            elif sensor_type == "camera":
-                image_data = decoded_json.get("image")
-                if image_data:
-                    # Decode and save the image
-                    image_bytes = base64.b64decode(image_data)
-                    filename = f"images/camera_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
-                    with open(filename, "wb") as img_file:
-                        img_file.write(image_bytes)
-                    print(f"📅 {timestamp} | 📸 Camera Image Saved: {filename}")
-                else:
-                    print(f"📅 {timestamp} | 📸 Camera sensor data found but no image field.")
-
-            # Unknown sensors
+        elif sensor_type == "camera":
+            image_data = item.get("image_base64")
+            if image_data:
+                image_bytes = base64.b64decode(image_data)
+                filename = f"images/camera_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
+                with open(filename, "wb") as img_file:
+                    img_file.write(image_bytes)
+                print(f"📅 {timestamp} | 📸 Camera Image Saved: {filename}")
             else:
-                print(f"📅 {timestamp} | ❓ Unknown sensor type: {sensor_type}")
+                print(f"📅 {timestamp} | 📸 Camera sensor data found but no 'image_base64' field.")
 
-        except Exception as e:
-            print(f"⚠️ Error decoding Base64 Body at {timestamp}: {e}")
-    else:
-        print("⚠️ No 'Body' field found in item.")
+        else:
+            print(f"📅 {timestamp} | ❓ Unknown sensor type: {sensor_type}")
+
+    except Exception as e:
+        print(f"⚠️ Error processing item at {timestamp}: {e}")
 
 if not items_found:
     print("🚫 No telemetry items found in the container.")
