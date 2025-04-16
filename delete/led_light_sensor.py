@@ -66,7 +66,7 @@ def log_light_data(light_data):
     }
 
     try:
-        if os.path.exists("light_log.json"):
+        if os.path.exists("led_light_log.json"):
             with open("light_log.json", "r") as log_file:
                 logs = json.load(log_file)
             if not isinstance(logs, list):

@@ -96,28 +96,37 @@ def send_data_to_cloud(light_data):
         client.disconnect()
 
 def log_light_data(light_data):
-    """Logs light sensor data into a JSON file."""
+    """Logs light sensor data into logs/light_log.json."""
     log_entry = {
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "lux": light_data["lux"]
     }
 
     logs = []
-    if os.path.exists("light_log.json"):
+    log_folder = "logs"
+    log_path = os.path.join(log_folder, "light_log.json")
+
+    # Ensure logs folder exists
+    os.makedirs(log_folder, exist_ok=True)
+
+    if os.path.exists(log_path) and os.path.getsize(log_path) > 0:
         try:
-            with open("light_log.json", "r") as log_file:
+            with open(log_path, "r") as log_file:
                 logs = json.load(log_file)
             if not isinstance(logs, list):
                 logs = []
         except Exception:
             logs = []
-    
+    else:
+        logs = []
+
     logs.append(log_entry)
 
-    with open("light_log.json", "w") as log_file:
+    with open(log_path, "w") as log_file:
         json.dump(logs, log_file, indent=4)
 
-    print(f"📝 Logged: {log_entry}")
+    print(f"✅ Logged Light Data: {log_entry}")
+
 
 def get_light_level():
     """Gets light sensor data from real sensor or generates mock data."""

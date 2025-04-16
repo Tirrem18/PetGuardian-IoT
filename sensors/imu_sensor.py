@@ -37,7 +37,7 @@ def send_data_to_cloud(motion_data):
     print(f"Sent IMU Data to MQTT Broker: {payload}")
 
 def log_imu_data(motion_data):
-    """Logs IMU data into a JSON file."""
+    """Logs IMU data into logs/imu_log.json with folder handling."""
     log_entry = {
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "accel_x": motion_data["accel_x"],
@@ -45,23 +45,31 @@ def log_imu_data(motion_data):
         "accel_z": motion_data["accel_z"]
     }
 
-    if os.path.exists("imu_log.json"):
+    logs = []
+    log_folder = "logs"
+    log_path = os.path.join(log_folder, "imu_log.json")
+
+    # Ensure logs directory exists
+    os.makedirs(log_folder, exist_ok=True)
+
+    if os.path.exists(log_path) and os.path.getsize(log_path) > 0:
         try:
-            with open("imu_log.json", "r") as log_file:
+            with open(log_path, "r") as log_file:
                 logs = json.load(log_file)
             if not isinstance(logs, list):
-                logs = []  
-        except (json.JSONDecodeError, FileNotFoundError):
-            logs = []  
+                logs = []
+        except Exception:
+            logs = []
     else:
-        logs = []  
+        logs = []
 
     logs.append(log_entry)
 
-    with open("imu_log.json", "w") as log_file:
+    with open(log_path, "w") as log_file:
         json.dump(logs, log_file, indent=4)
 
-    print(f"Logged IMU Data: {log_entry}")
+    print(f"✅ Logged IMU Data: {log_entry}")
+
 
 def get_motion_data():
     """Gets IMU data from real sensor or generates mock data."""

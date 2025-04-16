@@ -98,6 +98,10 @@ def send_data_to_cosmos(location):
     except Exception as e:
         print(f"❌ Failed to send to Cosmos DB: {e}")
 
+import os
+import json
+import time
+
 def log_gps_data(location):
     """Logs GPS data to local JSON file."""
     log_entry = {
@@ -105,19 +109,31 @@ def log_gps_data(location):
         "latitude": location["latitude"],
         "longitude": location["longitude"]
     }
+
     logs = []
-    if os.path.exists("gps_log.json") and os.path.getsize("gps_log.json") > 0:
+    log_folder = "logs"
+    log_path = os.path.join(log_folder, "gps_log.json")
+
+    # Ensure the logs folder exists
+    os.makedirs(log_folder, exist_ok=True)
+
+    if os.path.exists(log_path) and os.path.getsize(log_path) > 0:
         try:
-            with open("gps_log.json", "r") as log_file:
+            with open(log_path, "r") as log_file:
                 logs = json.load(log_file)
             if not isinstance(logs, list):
                 logs = []
         except Exception:
             logs = []
+
     logs.append(log_entry)
-    with open("gps_log.json", "w") as log_file:
+
+    with open(log_path, "w") as log_file:
         json.dump(logs, log_file, indent=4)
-    print(f"Logged GPS Data: {log_entry}")
+
+    print(f"✅ Logged GPS Data: {log_entry}")
+
+
 
 def gps_tracking():
     """Continuously tracks and sends GPS data."""

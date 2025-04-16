@@ -30,7 +30,7 @@ COSMOS_KEY = "gb0rv4z3It79ncyssNJmhHj8mDY8eUBcZPYBfACM9GPWXbf1m2IoIxDgwUQ7dcWfyU
 DATABASE_NAME = "iotdata"
 CONTAINER_NAME = "telemetry"
 
-# Ensure image directory exists
+# Ensure image directory existsx
 if not os.path.exists(SAVE_DIR):
     os.makedirs(SAVE_DIR)
 

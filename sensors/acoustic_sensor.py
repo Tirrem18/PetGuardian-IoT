@@ -39,25 +39,36 @@ def send_data_to_cloud(event):
 
 def log_sound_event(event):
     """Logs detected sound events into a JSON file with multiple entries."""
-    log_entry = {"timestamp": time.strftime("%Y-%m-%d %H:%M:%S"), "event": event}
+    log_entry = {
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "event": event
+    }
 
-    if os.path.exists("sound_log.json") and os.path.getsize("sound_log.json") > 0:
+    logs = []
+    log_folder = "logs"
+    log_path = os.path.join(log_folder, "sound_log.json")
+
+    # Ensure the logs folder exists
+    os.makedirs(log_folder, exist_ok=True)
+
+    if os.path.exists(log_path) and os.path.getsize(log_path) > 0:
         try:
-            with open("sound_log.json", "r") as log_file:
+            with open(log_path, "r") as log_file:
                 logs = json.load(log_file)
             if not isinstance(logs, list):
-                logs = []  
-        except (json.JSONDecodeError, FileNotFoundError):
-            logs = []  
+                logs = []
+        except Exception:
+            logs = []
     else:
-        logs = []  
+        logs = []
 
     logs.append(log_entry)
 
-    with open("sound_log.json", "w") as log_file:
+    with open(log_path, "w") as log_file:
         json.dump(logs, log_file, indent=4)
 
-    print(f"Logged: {event}")
+    print(f"✅ Logged: {log_entry}")
+b
 
 def detect_sound():
     """Detects sound using either a real acoustic sensor or simulated key presses."""
