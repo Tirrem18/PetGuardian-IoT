@@ -1,49 +1,71 @@
+import os
 import time
 import json
-import os
 import random
-import paho.mqtt.client as mqtt
 import base64
 import uuid
+import paho.mqtt.client as mqtt
 from azure.iot.device import IoTHubDeviceClient, Message
 from azure.cosmos import CosmosClient
 
-# Try to import Raspberry Pi I2C library; if unavailable, use virtual mode
+# Try to import the real I2C library; fall back to virtual sensor
 try:
     from smbus2 import SMBus
     REAL_SENSOR = True
 except ImportError:
-    print("Light sensor module not found! Running in virtual mode...")
+    print("Light sensor module not found. Running in virtual mode.")
     REAL_SENSOR = False
 
-# BH1750 I2C Address (For Physical Sensor)
-BH1750_ADDR = 0x23  
+# BH1750 I2C address
+BH1750_ADDR = 0x23
 
-# Azure IoT Hub connection
+# Azure IoT Hub configuration
 IOTHUB_CONNECTION_STRING = "HostName=IoTPawTrack.azure-devices.net;DeviceId=collar01;SharedAccessKey=ShzFs2jgI06rAjksNrEst8Byb8x2ljbHrBGYT+raQ1E="
 
-# Cosmos DB connection
+# Cosmos DB configuration
 COSMOS_URI = "https://petguardiandb.documents.azure.com:443/"
 COSMOS_KEY = "gb0rv4z3It79ncyssNJmhHj8mDY8eUBcZPYBfACM9GPWXbf1m2IoIxDgwUQ7dcWfyUJOxUUnSncKACDb44Qynw=="
 DATABASE_NAME = "iotdata"
 CONTAINER_NAME = "telemetry"
 
-# MQTT
+# MQTT configuration
 BROKER = "test.mosquitto.org"
 TOPIC = "petguardian/light"
 
-# Cosmos DB client
+# Setup Cosmos DB connection
 cosmos_client = CosmosClient(COSMOS_URI, credential=COSMOS_KEY)
 database = cosmos_client.get_database_client(DATABASE_NAME)
 container = database.get_container_client(CONTAINER_NAME)
 
+# Setup I2C for physical sensor
 if REAL_SENSOR:
-    bus = SMBus(1)  # I2C Bus on Raspberry Pi
+    bus = SMBus(1)
 
-# ----------------------------- FUNCTIONS -----------------------------
+# Project-level log path setup
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LOG_DIR = os.path.join(BASE_DIR, "data", "logs")
+LOG_PATH = os.path.join(LOG_DIR, "light_log.json")
+os.makedirs(LOG_DIR, exist_ok=True)
+
+def send_data_to_cloud(light_data):
+    """Send light data to MQTT broker."""
+    client = mqtt.Client()
+    try:
+        client.connect(BROKER)
+        payload = json.dumps({
+            "sensor": "light",
+            "lux": light_data["lux"],
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+        })
+        client.publish(TOPIC, payload)
+        print("Sent light data to MQTT broker.")
+    except Exception as e:
+        print(f"MQTT error: {e}")
+    finally:
+        client.disconnect()
 
 def send_light_to_azure(light_data):
-    """Send light sensor data to Azure IoT Hub."""
+    """Send light data to Azure IoT Hub."""
     try:
         client = IoTHubDeviceClient.create_from_connection_string(IOTHUB_CONNECTION_STRING)
         payload = json.dumps({
@@ -53,13 +75,13 @@ def send_light_to_azure(light_data):
         })
         message = Message(payload)
         client.send_message(message)
-        print(f"✅ Sent Light Data to Azure IoT Hub: {payload}")
+        print("Sent light data to Azure IoT Hub.")
         client.disconnect()
     except Exception as e:
-        print(f"❌ Failed to send to Azure IoT Hub: {e}")
+        print(f"Azure IoT Hub error: {e}")
 
 def send_light_to_cosmos(light_data):
-    """Send light data to Cosmos DB (Base64-encoded)."""
+    """Send light data to Cosmos DB."""
     try:
         payload = {
             "sensor": "light",
@@ -74,62 +96,36 @@ def send_light_to_cosmos(light_data):
             "timestamp": payload["timestamp"]
         }
         container.create_item(body=document)
-        print("✅ Sent Light data to Cosmos DB")
+        print("Sent light data to Cosmos DB.")
     except Exception as e:
-        print(f"❌ Failed to send to Cosmos DB: {e}")
-
-def send_data_to_cloud(light_data):
-    """Send light sensor data to MQTT broker."""
-    client = mqtt.Client()
-    try:
-        client.connect(BROKER)
-        payload = json.dumps({
-            "sensor": "light",
-            "lux": light_data["lux"],
-            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
-        })
-        client.publish(TOPIC, payload)
-        print(f"📡 Sent Light Data to MQTT Broker: {payload}")
-    except Exception as e:
-        print(f"❌ MQTT error: {e}")
-    finally:
-        client.disconnect()
+        print(f"Cosmos DB error: {e}")
 
 def log_light_data(light_data):
-    """Logs light sensor data into logs/light_log.json."""
+    """Log light data locally in JSON format."""
     log_entry = {
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "lux": light_data["lux"]
     }
 
     logs = []
-    log_folder = "logs"
-    log_path = os.path.join(log_folder, "light_log.json")
-
-    # Ensure logs folder exists
-    os.makedirs(log_folder, exist_ok=True)
-
-    if os.path.exists(log_path) and os.path.getsize(log_path) > 0:
+    if os.path.exists(LOG_PATH) and os.path.getsize(LOG_PATH) > 0:
         try:
-            with open(log_path, "r") as log_file:
+            with open(LOG_PATH, "r") as log_file:
                 logs = json.load(log_file)
             if not isinstance(logs, list):
                 logs = []
         except Exception:
             logs = []
-    else:
-        logs = []
 
     logs.append(log_entry)
 
-    with open(log_path, "w") as log_file:
+    with open(LOG_PATH, "w") as log_file:
         json.dump(logs, log_file, indent=4)
 
-    print(f"✅ Logged Light Data: {log_entry}")
-
+    print("Logged light data locally.")
 
 def get_light_level():
-    """Gets light sensor data from real sensor or generates mock data."""
+    """Get current light level from sensor or simulate it."""
     if REAL_SENSOR:
         data = bus.read_i2c_block_data(BH1750_ADDR, 0x10, 2)
         lux = (data[0] << 8) | data[1]
@@ -138,21 +134,18 @@ def get_light_level():
         return {"lux": random.uniform(0, 1000)}
 
 def light_tracking():
-    """Tracks and logs light sensor data continuously."""
-    print("🔆 Light Sensor Active...")
-
+    """Continuously track, log, and transmit light data."""
+    print("Light sensor active...")
     while True:
         light_data = get_light_level()
         log_light_data(light_data)
-        send_data_to_cloud(light_data)       # MQTT
-        send_light_to_azure(light_data)      # Azure IoT Hub
-        send_light_to_cosmos(light_data)     # Cosmos DB
+        send_data_to_cloud(light_data)
+        send_light_to_azure(light_data)
+        send_light_to_cosmos(light_data)
         time.sleep(5)
-
-# ----------------------------- ENTRY POINT -----------------------------
 
 if __name__ == "__main__":
     try:
         light_tracking()
     except KeyboardInterrupt:
-        print("\n🛑 Stopping light sensor tracking...")
+        print("\nLight tracking stopped.")

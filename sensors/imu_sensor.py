@@ -1,25 +1,33 @@
+import os
 import time
 import json
-import os
 import random
 import paho.mqtt.client as mqtt
 
-# Try to import Raspberry Pi I2C library; if unavailable, use virtual mode
+# Attempt to import real IMU I2C library; fallback to virtual mode
 try:
     from smbus2 import SMBus
     REAL_SENSOR = True
 except ImportError:
-    print("IMU module not found! Running in virtual mode...")
+    print("IMU module not found. Running in virtual mode.")
     REAL_SENSOR = False
 
-# MPU-6050 I2C Address (For Physical Sensor)
-MPU6050_ADDR = 0x68  
+# I2C address for MPU-6050
+MPU6050_ADDR = 0x68
 
+# MQTT configuration
 BROKER = "test.mosquitto.org"
 TOPIC = "petguardian/imu"
 
+# Setup I2C bus for physical device
 if REAL_SENSOR:
-    bus = SMBus(1)  # I2C Bus on Raspberry Pi
+    bus = SMBus(1)  # Default I2C bus on Raspberry Pi
+
+# Absolute path to /data/logs/imu_log.json
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LOG_DIR = os.path.join(BASE_DIR, "data", "logs")
+LOG_PATH = os.path.join(LOG_DIR, "imu_log.json")
+os.makedirs(LOG_DIR, exist_ok=True)
 
 def send_data_to_cloud(motion_data):
     """Send IMU data to MQTT broker."""
@@ -34,10 +42,10 @@ def send_data_to_cloud(motion_data):
     })
     client.publish(TOPIC, payload)
     client.disconnect()
-    print(f"Sent IMU Data to MQTT Broker: {payload}")
+    print("Sent IMU data to MQTT broker.")
 
 def log_imu_data(motion_data):
-    """Logs IMU data into logs/imu_log.json with folder handling."""
+    """Log IMU data to /data/logs/imu_log.json."""
     log_entry = {
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "accel_x": motion_data["accel_x"],
@@ -46,53 +54,51 @@ def log_imu_data(motion_data):
     }
 
     logs = []
-    log_folder = "logs"
-    log_path = os.path.join(log_folder, "imu_log.json")
-
-    # Ensure logs directory exists
-    os.makedirs(log_folder, exist_ok=True)
-
-    if os.path.exists(log_path) and os.path.getsize(log_path) > 0:
+    if os.path.exists(LOG_PATH) and os.path.getsize(LOG_PATH) > 0:
         try:
-            with open(log_path, "r") as log_file:
+            with open(LOG_PATH, "r") as log_file:
                 logs = json.load(log_file)
             if not isinstance(logs, list):
                 logs = []
         except Exception:
             logs = []
-    else:
-        logs = []
 
     logs.append(log_entry)
 
-    with open(log_path, "w") as log_file:
+    with open(LOG_PATH, "w") as log_file:
         json.dump(logs, log_file, indent=4)
 
-    print(f"✅ Logged IMU Data: {log_entry}")
-
+    print("Logged IMU data locally.")
 
 def get_motion_data():
-    """Gets IMU data from real sensor or generates mock data."""
+    """Retrieve IMU data from sensor or simulate values."""
     if REAL_SENSOR:
         accel_x = bus.read_byte_data(MPU6050_ADDR, 0x3B)
         accel_y = bus.read_byte_data(MPU6050_ADDR, 0x3D)
         accel_z = bus.read_byte_data(MPU6050_ADDR, 0x3F)
-        return {"accel_x": accel_x, "accel_y": accel_y, "accel_z": accel_z}
+        return {
+            "accel_x": accel_x,
+            "accel_y": accel_y,
+            "accel_z": accel_z
+        }
     else:
-        return {"accel_x": random.uniform(-2, 2), "accel_y": random.uniform(-2, 2), "accel_z": random.uniform(-2, 2)}
+        return {
+            "accel_x": random.uniform(-2, 2),
+            "accel_y": random.uniform(-2, 2),
+            "accel_z": random.uniform(-2, 2)
+        }
 
 def imu_tracking():
-    """Tracks and logs IMU data continuously."""
-    print("IMU Tracking Active...")
-
+    """Continuously track, log, and send IMU data."""
+    print("IMU tracking active...")
     while True:
         motion_data = get_motion_data()
         log_imu_data(motion_data)
         send_data_to_cloud(motion_data)
-        time.sleep(5)  # Adjust tracking interval
+        time.sleep(5)
 
 if __name__ == "__main__":
     try:
         imu_tracking()
     except KeyboardInterrupt:
-        print("\n Stopping IMU tracking...")
+        print("\nIMU tracking stopped.")

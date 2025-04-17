@@ -1,41 +1,47 @@
+import os
 import time
 import json
-import os
-import random
 import base64
 import uuid
+import random
+import paho.mqtt.client as mqtt
 from azure.iot.device import IoTHubDeviceClient, Message
 from azure.cosmos import CosmosClient
-import paho.mqtt.client as mqtt
 
-# Try to import real GPS sensor; fall back to virtual mode
+# Check for real GPS sensor
 try:
     import gpsd
     REAL_SENSOR = True
 except ImportError:
-    print("GPS module not found! Running in virtual mode...")
+    print("GPS module not found. Running in virtual mode.")
     REAL_SENSOR = False
 
-# Azure IoT Hub connection
+# Azure IoT Hub configuration
 IOTHUB_CONNECTION_STRING = "HostName=IoTPawTrack.azure-devices.net;DeviceId=collar01;SharedAccessKey=ShzFs2jgI06rAjksNrEst8Byb8x2ljbHrBGYT+raQ1E="
 
-# Cosmos DB connection
+# Cosmos DB configuration
 COSMOS_URI = "https://petguardiandb.documents.azure.com:443/"
 COSMOS_KEY = "gb0rv4z3It79ncyssNJmhHj8mDY8eUBcZPYBfACM9GPWXbf1m2IoIxDgwUQ7dcWfyUJOxUUnSncKACDb44Qynw=="
 DATABASE_NAME = "iotdata"
 CONTAINER_NAME = "telemetry"
 
-# MQTT
+# MQTT configuration
 BROKER = "broker.hivemq.com"
 TOPIC = "petguardian/gps"
 
-# Cosmos DB client
+# Cosmos DB client setup
 cosmos_client = CosmosClient(COSMOS_URI, credential=COSMOS_KEY)
 database = cosmos_client.get_database_client(DATABASE_NAME)
 container = database.get_container_client(CONTAINER_NAME)
 
+# Log file path setup using absolute project root
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LOG_DIR = os.path.join(BASE_DIR, "data", "logs")
+LOG_PATH = os.path.join(LOG_DIR, "gps_log.json")
+os.makedirs(LOG_DIR, exist_ok=True)
+
 def get_gps_location():
-    """Gets GPS data from sensor or generates mock data."""
+    """Retrieve GPS location from sensor or simulate data."""
     if REAL_SENSOR:
         gpsd.connect()
         packet = gpsd.get_current()
@@ -58,7 +64,7 @@ def send_data_to_mqtt(location):
     })
     client.publish(TOPIC, payload)
     client.disconnect()
-    print(f"Sent GPS Data to MQTT Broker: {payload}")
+    print("Sent GPS data to MQTT broker.")
 
 def send_data_to_azure(location):
     """Send GPS data to Azure IoT Hub."""
@@ -72,13 +78,13 @@ def send_data_to_azure(location):
         })
         message = Message(payload)
         client.send_message(message)
-        print(f"Sent GPS Data to Azure IoT Hub: {payload}")
+        print("Sent GPS data to Azure IoT Hub.")
         client.disconnect()
     except Exception as e:
-        print(f"Failed to send to Azure IoT Hub: {e}")
+        print(f"Azure IoT Hub error: {e}")
 
 def send_data_to_cosmos(location):
-    """Send GPS data to Cosmos DB (Base64-encoded)."""
+    """Send GPS data to Cosmos DB (base64-encoded payload)."""
     try:
         payload = {
             "sensor": "gps",
@@ -88,22 +94,18 @@ def send_data_to_cosmos(location):
         }
         encoded_body = base64.b64encode(json.dumps(payload).encode('utf-8')).decode('utf-8')
         document = {
-            "id": str(uuid.uuid4()),  # ✅ Add a unique ID for the document
+            "id": str(uuid.uuid4()),
             "Body": encoded_body,
             "deviceId": "collar01",
             "timestamp": payload["timestamp"]
-            }
+        }
         container.create_item(body=document)
-        print("✅ Sent GPS data to Cosmos DB")
+        print("Sent GPS data to Cosmos DB.")
     except Exception as e:
-        print(f"❌ Failed to send to Cosmos DB: {e}")
-
-import os
-import json
-import time
+        print(f"Cosmos DB error: {e}")
 
 def log_gps_data(location):
-    """Logs GPS data to local JSON file."""
+    """Log GPS data locally to a JSON file."""
     log_entry = {
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "latitude": location["latitude"],
@@ -111,15 +113,9 @@ def log_gps_data(location):
     }
 
     logs = []
-    log_folder = "logs"
-    log_path = os.path.join(log_folder, "gps_log.json")
-
-    # Ensure the logs folder exists
-    os.makedirs(log_folder, exist_ok=True)
-
-    if os.path.exists(log_path) and os.path.getsize(log_path) > 0:
+    if os.path.exists(LOG_PATH) and os.path.getsize(LOG_PATH) > 0:
         try:
-            with open(log_path, "r") as log_file:
+            with open(LOG_PATH, "r") as log_file:
                 logs = json.load(log_file)
             if not isinstance(logs, list):
                 logs = []
@@ -128,16 +124,14 @@ def log_gps_data(location):
 
     logs.append(log_entry)
 
-    with open(log_path, "w") as log_file:
+    with open(LOG_PATH, "w") as log_file:
         json.dump(logs, log_file, indent=4)
 
-    print(f"✅ Logged GPS Data: {log_entry}")
-
-
+    print("Logged GPS data locally.")
 
 def gps_tracking():
-    """Continuously tracks and sends GPS data."""
-    print("GPS Tracking Active...")
+    """Continuously track, log, and send GPS data to all targets."""
+    print("GPS tracking active.")
     while True:
         location = get_gps_location()
         log_gps_data(location)
@@ -150,4 +144,4 @@ if __name__ == "__main__":
     try:
         gps_tracking()
     except KeyboardInterrupt:
-        print("\nStopping GPS tracking...")
+        print("\nGPS tracking stopped.")
