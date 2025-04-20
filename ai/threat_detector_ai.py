@@ -1,0 +1,146 @@
+import time
+import os
+import json
+from math import radians, cos, sin, sqrt, atan2
+
+class ThreatDetector:
+    def __init__(self, home_location=None, safe_radius=30, threat_cooldown_seconds=30, sound_window=10, min_sounds=3, min_sound_interval=1):
+        """
+        Initializes the threat detection system.
+        """
+        self.home_location = home_location
+        self.safe_radius = safe_radius
+        self.threat_cooldown_seconds = threat_cooldown_seconds
+        self.sound_window = sound_window
+        self.min_sounds = min_sounds
+        self.min_sound_interval = min_sound_interval
+
+        self.sound_timestamps = []       # List of timestamps for recent sounds
+        self.latest_gps = None           # Most recent GPS reading (lat, lon)
+        self.last_trigger_time = 0       # Time of last confirmed threat
+        self.awaiting_gps = False        # Set to True after sound spike detected
+
+    def handle(self, payload):
+        """
+        Main handler called by ai_controller.py.
+        """
+        sensor_type = payload.get("sensor")
+
+        if sensor_type == "acoustic":
+            return self._handle_sound(payload.get("timestamp"))
+        elif sensor_type == "gps":
+            return self._handle_gps(payload.get("latitude"), payload.get("longitude"))
+
+        return False
+
+    def _handle_sound(self, timestamp):
+        """
+        Handle incoming sound. If threshold reached, request GPS.
+        """
+        now = time.time()
+
+        # If min_sounds = 1, don't enforce spacing
+        if self.min_sounds > 1 and self.sound_timestamps:
+            time_since_last = now - self.sound_timestamps[-1]
+            if time_since_last < self.min_sound_interval:
+                return False  # Skip sound if too close
+
+        self.sound_timestamps.append(now)
+        self.sound_timestamps = [t for t in self.sound_timestamps if now - t <= self.sound_window]
+
+        # If enough sounds and cooldown passed → request GPS
+        if len(self.sound_timestamps) >= self.min_sounds:
+            if now - self.last_trigger_time >= self.threat_cooldown_seconds:
+                self.awaiting_gps = True
+                print("📡 Sound spike detected — awaiting GPS position.")
+                return "awaiting_gps"
+
+        return False
+
+    def _handle_gps(self, lat, lon):
+        """
+        GPS received. If awaiting, confirm threat based on zone.
+        """
+        try:
+            self.latest_gps = (float(lat), float(lon))
+        except (TypeError, ValueError):
+            self.latest_gps = None
+            print("⚠️ Invalid GPS received — assuming outside zone.")
+            return False
+
+        if not self.awaiting_gps:
+            return False  # We weren’t waiting for this
+
+        self.awaiting_gps = False  # Reset flag
+        now = time.time()
+
+        # Determine if outside zone
+        outside_zone = True
+        if self.home_location and self.latest_gps:
+            outside_zone = self._is_outside_safe_zone()
+
+        if self.home_location and not outside_zone:
+            print("✅ Inside safe zone. No threat.")
+            self.sound_timestamps.clear()
+            return False
+
+        # Confirm threat
+        self._trigger_threat_response()
+        self.sound_timestamps.clear()
+        self.last_trigger_time = now
+        return "threat_triggered"
+
+    def _is_outside_safe_zone(self):
+        """
+        Calculates GPS distance using haversine.
+        """
+        lat1, lon1 = self.latest_gps
+        lat2, lon2 = self.home_location
+        lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+        a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
+        c = 2 * atan2(sqrt(a), sqrt(1 - a))
+        distance = 6371000 * c
+        return distance > self.safe_radius
+
+    def _trigger_threat_response(self):
+        """
+        Log threat + print summary.
+        """
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        gps = self.latest_gps if self.latest_gps else ("unknown", "unknown")
+
+        log_entry = {
+            "timestamp": timestamp,
+            "gps_latitude": gps[0],
+            "gps_longitude": gps[1],
+            "reason": f"{len(self.sound_timestamps)} sound events within {self.sound_window} seconds"
+        }
+
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        log_dir = os.path.join(base_dir, "data", "logs")
+        log_path = os.path.join(log_dir, "threat_log.json")
+
+        os.makedirs(log_dir, exist_ok=True)
+
+        if os.path.exists(log_path) and os.path.getsize(log_path) > 0:
+            try:
+                with open(log_path, "r") as file:
+                    logs = json.load(file)
+                if not isinstance(logs, list):
+                    logs = []
+            except Exception:
+                logs = []
+        else:
+            logs = []
+
+        logs.append(log_entry)
+
+        with open(log_path, "w") as file:
+            json.dump(logs, file, indent=4)
+
+        print("\n⚠️ THREAT DETECTED!")
+        print(f"- Time: {timestamp}")
+        print(f"- Location: {gps}")
+        print(f"- Logged to: {log_path}")

@@ -11,8 +11,11 @@ payload = json.dumps({
     "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
 })
 
-print(f"Sending to: petguardian/iot")
+print("Sending to: petguardian/iot")
 client.publish("petguardian/iot", payload)
-client.disconnect()
 
+# Sleep to allow message transmission before disconnecting
+time.sleep(2)
+
+client.disconnect()
 print("✅ Test MQTT message sent.")
