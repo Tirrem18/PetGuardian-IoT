@@ -5,84 +5,99 @@ import base64
 import uuid
 import paho.mqtt.client as mqtt
 
-# Azure IoT and Cosmos DB
+# Azure & Cosmos DB
 from azure.iot.device import IoTHubDeviceClient, Message
 from azure.cosmos import CosmosClient
 
-# Try to import Raspberry Pi Camera library
+# Enable interactive input if run directly
+INTERACTIVE_MODE = False
+
+# Try PiCamera, fallback to OpenCV
 try:
     from picamera import PiCamera
     REAL_CAMERA = True
 except ImportError:
     import cv2
+    print("⚠️ Camera module not found. Virtual mode enabled.")
     REAL_CAMERA = False
 
-# MQTT broker details
-BROKER = "broker.hivemq.com"
-TOPIC = "petguardian/camera"
+# MQTT (HiveMQ Cloud)
+BROKER = "a5c9d1ea0e224376ad6285eb8aa83d55.s1.eu.hivemq.cloud"
+PORT = 8883
+USERNAME = "username"
+PASSWORD = "Password1"
+TOPIC_PUBLISH = "petguardian/camera"
+TOPIC_TRIGGER = "petguardian/trigger/camera"
 
-# Project-based image directory
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SAVE_DIR = os.path.join(BASE_DIR, "data", "images")
-os.makedirs(SAVE_DIR, exist_ok=True)
-
-# Azure connection info
+# Azure
 IOTHUB_CONNECTION_STRING = "HostName=IoTPawTrack.azure-devices.net;DeviceId=collar01;SharedAccessKey=ShzFs2jgI06rAjksNrEst8Byb8x2ljbHrBGYT+raQ1E="
+
+# Cosmos
 COSMOS_URI = "https://petguardiandb.documents.azure.com:443/"
 COSMOS_KEY = "gb0rv4z3It79ncyssNJmhHj8mDY8eUBcZPYBfACM9GPWXbf1m2IoIxDgwUQ7dcWfyUJOxUUnSncKACDb44Qynw=="
 DATABASE_NAME = "iotdata"
 CONTAINER_NAME = "telemetry"
 
-# Initialize PiCamera if available
-if REAL_CAMERA:
-    camera = PiCamera()
-    camera.resolution = (640, 480)
+# Paths
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SAVE_DIR = os.path.join(BASE_DIR, "data", "images")
+TEST_DIR = os.path.join(BASE_DIR, "tests", "test_images")
+os.makedirs(SAVE_DIR, exist_ok=True)
 
-# Connect to Cosmos DB
+# Cosmos setup
 cosmos_client = CosmosClient(COSMOS_URI, credential=COSMOS_KEY)
 database = cosmos_client.get_database_client(DATABASE_NAME)
 container = database.get_container_client(CONTAINER_NAME)
 
-def encode_image_to_base64(image_path):
-    """Convert a saved image file to a base64 string."""
-    with open(image_path, "rb") as img_file:
-        return base64.b64encode(img_file.read()).decode('utf-8')
+# PiCamera init
+if REAL_CAMERA:
+    camera = PiCamera()
+    camera.resolution = (640, 480)
 
-def send_data_all(image_path):
-    """Send image data to MQTT, Azure IoT Hub, and Cosmos DB, then delete the image file."""
-    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-    encoded_img = encode_image_to_base64(image_path)
+def encode_image_to_base64(path):
+    with open(path, "rb") as f:
+        return base64.b64encode(f.read()).decode()
 
-    payload_dict = {
+def send_data_all(image_path, timestamp):
+    if image_path and os.path.exists(image_path):
+        encoded_img = encode_image_to_base64(image_path)
+    else:
+        encoded_img = "no_image"
+
+    payload = {
         "sensor": "camera",
         "timestamp": timestamp,
         "image_base64": encoded_img
     }
-    payload_json = json.dumps(payload_dict)
+    payload_json = json.dumps(payload)
 
-    # Send to MQTT broker
+    # MQTT
     try:
-        mqtt_client = mqtt.Client()
-        mqtt_client.connect(BROKER)
-        mqtt_client.publish(TOPIC, payload_json)
-        mqtt_client.disconnect()
-        print("Image sent to MQTT broker.")
+        client = mqtt.Client(client_id="camera_client")
+        client.username_pw_set(USERNAME, PASSWORD)
+        client.tls_set()
+        client.loop_start()
+        client.connect(BROKER, PORT)
+        time.sleep(1)
+        client.publish(TOPIC_PUBLISH, payload_json)
+        client.loop_stop()
+        client.disconnect()
+        print("📤 Image sent to MQTT broker.")
     except Exception as e:
-        print(f"MQTT error: {e}")
+        print(f"❌ MQTT error: {e}")
 
-    # Send to Azure IoT Hub
+    # Azure
     try:
-        iot_client = IoTHubDeviceClient.create_from_connection_string(IOTHUB_CONNECTION_STRING)
-        message = Message(payload_json)
-        iot_client.send_message(message)
-        iot_client.disconnect()
-        print("Image sent to Azure IoT Hub.")
+        azure = IoTHubDeviceClient.create_from_connection_string(IOTHUB_CONNECTION_STRING)
+        azure.send_message(Message(payload_json))
+        azure.disconnect()
+        print("☁️ Image sent to Azure IoT Hub.")
     except Exception as e:
-        print(f"IoT Hub error: {e}")
+        print(f"❌ Azure error: {e}")
 
-    # Save to Cosmos DB
+    # Cosmos
     try:
-        encoded_doc = base64.b64encode(payload_json.encode('utf-8')).decode('utf-8')
+        encoded_doc = base64.b64encode(payload_json.encode()).decode()
         doc = {
             "id": str(uuid.uuid4()),
             "sensor": "camera",
@@ -91,53 +106,111 @@ def send_data_all(image_path):
             "deviceId": "collar01"
         }
         container.create_item(body=doc)
-        print("Image saved to Cosmos DB.")
+        print("📦 Image saved to Cosmos DB.")
     except Exception as e:
-        print(f"Cosmos DB error: {e}")
+        print(f"❌ Cosmos error: {e}")
 
-    # Delete image file
-    try:
-        os.remove(image_path)
-        print(f"Deleted image: {image_path}")
-    except Exception as e:
-        print(f"Error deleting image: {e}")
-
-def capture_image():
-    """Capture an image using PiCamera or OpenCV (test mode), then send it to all targets."""
-    timestamp = time.strftime("%Y%m%d-%H%M%S")
-    image_path = os.path.join(SAVE_DIR, f"image_{timestamp}.jpg")
+def trigger_camera(timestamp):
+    filename = f"{timestamp.replace(':', '-').replace(' ', '_')}.jpg"
+    path = os.path.join(SAVE_DIR, filename)
 
     if REAL_CAMERA:
-        camera.capture(image_path)
+        try:
+            camera.capture(path)
+            print(f"📸 Real image saved: {path}")
+        except Exception as e:
+            print(f"❌ Real camera error: {e}")
+            path = None
     else:
-        cap = cv2.VideoCapture(0)
-        ret, frame = cap.read()
-        if ret:
-            cv2.imwrite(image_path, frame)
-        cap.release()
+        try:
+            cap = cv2.VideoCapture(0)
+            ret, frame = cap.read()
+            if ret:
+                cv2.imwrite(path, frame)
+                print(f"🧪 Simulated webcam image saved: {path}")
+            else:
+                print("❌ Simulated capture failed.")
+                path = None
+            cap.release()
+        except Exception as e:
+            print(f"❌ OpenCV error: {e}")
+            path = None
 
-    print(f"Captured image: {image_path}")
-    send_data_all(image_path)
+    if not path:
+        print("⚠️ No image captured — using fallback.")
+    send_data_all(path, timestamp)
 
-def camera_trigger():
-    """Listen for manual input (virtual mode) or use a timed trigger (real Pi camera)."""
-    print("Camera ready. Press 'P' to capture, 'X' to exit (virtual mode).")
+def run_manual_test():
+    print("🧪 Manual Camera Test Mode:")
+    print("1. Angry Dog")
+    print("2. Dirt Bike")
+    print("3. Fox in Yard")
+    choice = input("Select image (1-3): ").strip()
 
-    while True:
-        if not REAL_CAMERA:
-            import keyboard
-            if keyboard.is_pressed('p'):
-                capture_image()
-                time.sleep(1)
-            elif keyboard.is_pressed('x'):
-                print("Exiting camera loop.")
-                break
-        else:
-            time.sleep(10)
-            capture_image()
+    test_images = {
+        "1": "dog.png",
+        "2": "bike.png",
+        "3": "fox.png"
+    }
 
-if __name__ == "__main__":
+    selected = test_images.get(choice)
+    if not selected:
+        print("❌ Invalid choice.")
+        return
+
+    src_path = os.path.join(TEST_DIR, selected)
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    dest_filename = f"{timestamp.replace(':', '-').replace(' ', '_')}.jpg"
+    dest_path = os.path.join(SAVE_DIR, dest_filename)
+
     try:
-        camera_trigger()
+        with open(src_path, "rb") as src, open(dest_path, "wb") as dst:
+            dst.write(src.read())
+        print(f" Test image copied: {dest_path}")
+        send_data_all(dest_path, timestamp)
+    except Exception as e:
+        print(f"❌ Failed to send image: {e}")
+
+# MQTT logic
+def on_connect(client, userdata, flags, rc):
+    if rc == 0:
+        print("CAMERA Connected to broker.")
+        client.subscribe(TOPIC_TRIGGER)
+        print(f"📡 Subscribed to: {TOPIC_TRIGGER}")
+    else:
+        print("❌ MQTT connection failed.")
+
+def on_message(client, userdata, msg):
+    print(f"📥 Trigger received on {msg.topic}")
+    try:
+        payload = json.loads(msg.payload.decode())
+        if payload.get("command") == "get_camera":
+            timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+            print("📸 Trigger received. Capturing image...")
+            trigger_camera(timestamp)
+        else:
+            print("⚠️ Ignored: no matching command.")
+    except Exception as e:
+        print(f"❌ Failed to handle camera trigger: {e}")
+
+
+
+def start_camera_listener():
+    print("📡 Camera listener active — waiting for 'get_camera' ping...")
+    try:
+        client = mqtt.Client(client_id="camera_sensor")
+        client.username_pw_set(USERNAME, PASSWORD)
+        client.tls_set()
+        client.on_connect = on_connect
+        client.on_message = on_message
+        time.sleep(0.25)
+        client.connect(BROKER, PORT, 60)
+        client.loop_forever()
     except KeyboardInterrupt:
-        print("\nCamera system stopped.")
+        print("🛑 Camera listener stopped.")
+
+# Entry
+if __name__ == "__main__":
+    INTERACTIVE_MODE = True
+    start_camera_listener()
+

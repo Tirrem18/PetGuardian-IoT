@@ -20,6 +20,7 @@ try:
     REAL_SENSOR = True
 except ImportError:
     import keyboard
+    print("⚠️ Acoustic module not found. Virtual mode enabled.")
     REAL_SENSOR = False
 
 SOUND_SENSOR_PIN = 17
@@ -32,17 +33,27 @@ mqtt_client.connect(BROKER, PORT)
 mqtt_client.loop_start()
 
 
-def send_to_broker(event):
+def send_to_broker(event, retries=3, delay=2):
     """
-    Publish sound event to MQTT broker.
+    Publish sound event to MQTT broker with retry logic.
     """
     payload = json.dumps({
         "sensor": "acoustic",
         "event": event,
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
     })
-    mqtt_client.publish(TOPIC, payload)
-    print(f"📤 Sent to broker: {payload}")
+
+    for attempt in range(1, retries + 1):
+        try:
+            mqtt_client.publish(TOPIC, payload)
+            print(f"📤 Sent to broker (Attempt {attempt}): {payload}")
+            return
+        except Exception as e:
+            print(f"⚠️ MQTT publish failed (Attempt {attempt}): {e}")
+            time.sleep(delay)
+
+    print("❌ Failed to send sound event to broker after multiple attempts.")
+
 
 
 def send_to_azure(event):
@@ -115,20 +126,21 @@ def start_acoustic_sensor():
             GPIO.cleanup()
 
     else:
-        print("🎧 Simulated mode — Press 'S' for Loud Sound, 'X' to exit.")
         while True:
+            print("🎧 Simulated mode — Press 'S' to simulate loud noise, 'X' to exit.")
             event = keyboard.read_event()
             if event.event_type == keyboard.KEY_DOWN:
-                if event.name == 's':
+                if event.name.lower() == 's':
                     print("🔊 Simulated loud noise triggered.")
                     log_event("loud_noise")
                     send_to_broker("loud_noise")
                     send_to_azure("loud_noise")
                     time.sleep(0.5)
-                elif event.name == 'x':
+                elif event.name.lower() == 'x':
                     print("👋 Exiting simulated sound mode.")
                     break
             time.sleep(0.1)
+
 
 
 if __name__ == "__main__":

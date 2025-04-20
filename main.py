@@ -1,19 +1,26 @@
-from sensors.acoustic_sensor import detect_sound
-from cloud.mqtt_publisher import send_data_to_cloud
-from utils.logger import log_data
-import time
+import threading
+from sensors import gps_sensor, camera_sensor
+from ai import ai_controller
 
+def safe_start(name, func):
+    try:
+        print(f"🧵 Starting {name} listener thread...")
+        func()
+    except Exception as e:
+        print(f"❌ {name} thread crashed: {e}")
 
 def main():
-    print("Starting Pet Guardian IoT System...")
+    gps_thread = threading.Thread(target=lambda: safe_start("GPS", gps_sensor.start_gps_listener))
+    cam_thread = threading.Thread(target=lambda: safe_start("Camera", camera_sensor.start_camera_listener))
+    ai_thread  = threading.Thread(target=lambda: safe_start("AI", ai_controller.start_ai_listener))
 
-    while True:
-        sound = detect_sound()  # Runs real or simulated sensor
+    gps_thread.start()
+    cam_thread.start()
+    ai_thread.start()
 
-        print(f" Processed Sound Event: {sound}")
-        
-        print("\n🔄 Waiting for next cycle...\n")
-        time.sleep(5)
+    gps_thread.join()
+    cam_thread.join()
+    ai_thread.join()
 
 if __name__ == "__main__":
     main()
