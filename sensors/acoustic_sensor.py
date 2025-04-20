@@ -1,145 +1,135 @@
 import time
 import json
 import os
-from azure.iot.device import IoTHubDeviceClient, Message
 
-# Try to import Raspberry Pi GPIO library; if unavailable, use virtual mode
-try:
-    import RPi.GPIO as GPIO
-    REAL_SENSOR = True  # True if running on a Raspberry Pi with real GPIO
-except ImportError:
-    import keyboard  # Used for virtual sound detection
-    REAL_SENSOR = False
-
-# GPIO Pin for the acoustic sound sensor
-SOUND_SENSOR_PIN = 17
-
-# Configure GPIO pin if using real sensor
-if REAL_SENSOR:
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(SOUND_SENSOR_PIN, GPIO.IN)
-
-# MQTT broker and topic configuration
+# MQTT (HiveMQ Cloud) settings
 import paho.mqtt.client as mqtt
-BROKER = "broker.hivemq.com"
+BROKER = "a5c9d1ea0e224376ad6285eb8aa83d55.s1.eu.hivemq.cloud"
+PORT = 8883
+USERNAME = "username"
+PASSWORD = "Password1"
 TOPIC = "petguardian/iot"
 
-def send_data_to_cloud(event):
-    """
-    Send detected sound event to an MQTT broker.
-    """
-    client = mqtt.Client()
-    client.connect(BROKER)
+# Azure IoT Hub config
+from azure.iot.device import IoTHubDeviceClient, Message
+AZURE_CONNECTION_STRING = "HostName=IoTPawTrack.azure-devices.net;DeviceId=collar01;SharedAccessKey=ShzFs2jgI06rAjksNrEst8Byb8x2ljbHrBGYT+raQ1E="
 
+# Try GPIO (Raspberry Pi), fallback to keyboard simulation
+try:
+    import RPi.GPIO as GPIO
+    REAL_SENSOR = True
+except ImportError:
+    import keyboard
+    REAL_SENSOR = False
+
+SOUND_SENSOR_PIN = 17
+
+# Setup MQTT client
+mqtt_client = mqtt.Client()
+mqtt_client.username_pw_set(USERNAME, PASSWORD)
+mqtt_client.tls_set()
+mqtt_client.connect(BROKER, PORT)
+mqtt_client.loop_start()
+
+
+def send_to_broker(event):
+    """
+    Publish sound event to MQTT broker.
+    """
     payload = json.dumps({
         "sensor": "acoustic",
         "event": event,
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
     })
+    mqtt_client.publish(TOPIC, payload)
+    print(f"📤 Sent to broker: {payload}")
 
-    client.publish(TOPIC, payload)
-    client.disconnect()
-    print(f"Sent event to MQTT broker: {payload}")
 
-def log_sound_event(event):
-    """Logs detected sound events into a JSON file inside the /data/logs/ folder."""
+def send_to_azure(event):
+    """
+    Send sound event to Azure IoT Hub.
+    """
+    try:
+        client = IoTHubDeviceClient.create_from_connection_string(AZURE_CONNECTION_STRING)
+        payload = json.dumps({
+            "sensor": "acoustic",
+            "event": event,
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+        })
+        client.send_message(Message(payload))
+        client.disconnect()
+        print(f"☁️ Sent to Azure: {payload}")
+    except Exception as e:
+        print(f"⚠️ Failed to send to Azure: {e}")
+
+
+def log_event(event):
+    """
+    Log event to local JSON file.
+    """
     log_entry = {
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "event": event
     }
 
-    # Dynamically find the base project root
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     log_dir = os.path.join(base_dir, "data", "logs")
     log_path = os.path.join(log_dir, "sound_log.json")
-
     os.makedirs(log_dir, exist_ok=True)
 
     logs = []
     if os.path.exists(log_path) and os.path.getsize(log_path) > 0:
         try:
-            with open(log_path, "r") as log_file:
-                logs = json.load(log_file)
+            with open(log_path, "r") as f:
+                logs = json.load(f)
             if not isinstance(logs, list):
                 logs = []
         except Exception:
             logs = []
 
     logs.append(log_entry)
+    with open(log_path, "w") as f:
+        json.dump(logs, f, indent=4)
 
-    with open(log_path, "w") as log_file:
-        json.dump(logs, log_file, indent=4)
-
-    print(f"Logged: {log_entry}")
+    print(f"📝 Logged: {log_entry}")
 
 
-def detect_sound():
+def start_acoustic_sensor():
     """
-    Detect sound using either a real acoustic sensor or simulated key inputs.
+    Runs acoustic sensor mode: GPIO (real) or simulated keyboard.
     """
     if REAL_SENSOR:
-        print("Listening for sound events via GPIO...")
-        while True:
-            sound_detected = GPIO.input(SOUND_SENSOR_PIN)
-            if sound_detected == GPIO.HIGH:
-                print("Sound detected (real sensor)")
-                log_sound_event("real_sound")
-                send_data_to_cloud("real_sound")
-                send_data_to_azure("real_sound")
-                time.sleep(0.3)
-                return "real_sound"
-            time.sleep(0.1)
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(SOUND_SENSOR_PIN, GPIO.IN)
+        print("🎧 Listening with real sound sensor...")
+
+        try:
+            while True:
+                if GPIO.input(SOUND_SENSOR_PIN) == GPIO.HIGH:
+                    print("🔊 Real loud sound detected!")
+                    log_event("loud_noise")
+                    send_to_broker("loud_noise")
+                    send_to_azure("loud_noise")
+                    time.sleep(0.5)
+        except KeyboardInterrupt:
+            GPIO.cleanup()
+
     else:
-        print("Simulated sound detection (keyboard input)")
-        print("Press 'B' for Bark, 'C' for Car Noise, 'X' to Exit.")
+        print("🎧 Simulated mode — Press 'S' for Loud Sound, 'X' to exit.")
         while True:
             event = keyboard.read_event()
             if event.event_type == keyboard.KEY_DOWN:
-                if event.name == 'b':
-                    print("Bark detected (simulated)")
-                    log_sound_event("bark")
-                    send_data_to_cloud("bark")
-                    send_data_to_azure("bark")
-                    time.sleep(0.3)
-                    return "bark"
-                elif event.name == 'c':
-                    print("Car noise detected (simulated)")
-                    log_sound_event("car_noise")
-                    send_data_to_cloud("car_noise")
-                    send_data_to_azure("car_noise")
-                    time.sleep(0.3)
-                    return "car_noise"
+                if event.name == 's':
+                    print("🔊 Simulated loud noise triggered.")
+                    log_event("loud_noise")
+                    send_to_broker("loud_noise")
+                    send_to_azure("loud_noise")
+                    time.sleep(0.5)
                 elif event.name == 'x':
-                    print("Exiting virtual sound detection...")
+                    print("👋 Exiting simulated sound mode.")
                     break
             time.sleep(0.1)
 
-# Azure IoT Hub device connection string
-CONNECTION_STRING = "HostName=IoTPawTrack.azure-devices.net;DeviceId=collar01;SharedAccessKey=ShzFs2jgI06rAjksNrEst8Byb8x2ljbHrBGYT+raQ1E="
 
-def send_data_to_azure(event):
-    """
-    Send sound event to Azure IoT Hub using device connection string.
-    """
-    try:
-        client = IoTHubDeviceClient.create_from_connection_string(CONNECTION_STRING)
-        payload = json.dumps({
-            "sensor": "acoustic",
-            "event": event,
-            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
-        })
-        message = Message(payload)
-        client.send_message(message)
-        print(f"Sent event to Azure IoT Hub: {payload}")
-        client.disconnect()
-    except Exception as e:
-        print(f"Failed to send event to Azure IoT Hub: {e}")
-
-# Run the sound detection system
 if __name__ == "__main__":
-    try:
-        detect_sound()
-    except KeyboardInterrupt:
-        print("Stopping sound detection...")
-        if REAL_SENSOR:
-            GPIO.cleanup()
+    start_acoustic_sensor()
