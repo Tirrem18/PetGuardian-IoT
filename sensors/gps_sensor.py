@@ -160,17 +160,31 @@ def on_message(client, userdata, msg):
         print(f"⚠️ Error in message: {e}")
 
 def start_gps_listener():
-    print("📡 GPS Listener running. Waiting for 'get_gps' ping...")
-    try:
-        client = mqtt.Client(client_id="gps_sensor")
-        client.username_pw_set(USERNAME, PASSWORD)
-        client.tls_set()
-        client.on_connect = on_connect
-        client.on_message = on_message
-        client.connect(BROKER, PORT, 60)
-        client.loop_forever()
-    except KeyboardInterrupt:
-        print("🛑 Exiting GPS listener.")
+    print("📡 Starting GPS MQTT listener...")
+
+    client = mqtt.Client(client_id="gps_sensor")
+    client.username_pw_set(USERNAME, PASSWORD)
+    client.tls_set()
+
+    client.on_connect = on_connect
+    client.on_message = on_message
+
+    max_retries = 10
+    retry_delay = 1
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"🔄 GPS MQTT connect attempt {attempt}...")
+            client.connect(BROKER, PORT, 60)
+            client.loop_forever()
+            break  # If successful, never reaches here
+        except Exception as e:
+            print(f"❌ GPS attempt {attempt} failed: {e}")
+            if attempt < max_retries:
+                time.sleep(retry_delay)
+            else:
+                print("🛑 Max retries reached. GPS MQTT connection failed.")
+
 
 if __name__ == "__main__":
     INTERACTIVE_MODE = True

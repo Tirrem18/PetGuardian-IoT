@@ -1,6 +1,7 @@
 import threading
 from sensors import gps_sensor, camera_sensor
 from ai import ai_controller
+import time
 
 def safe_start(name, func):
     try:
@@ -15,7 +16,9 @@ def main():
     ai_thread  = threading.Thread(target=lambda: safe_start("AI", ai_controller.start_ai_listener))
 
     gps_thread.start()
+    time.sleep(1)
     cam_thread.start()
+    time.sleep(1)
     ai_thread.start()
 
     gps_thread.join()

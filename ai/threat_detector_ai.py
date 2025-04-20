@@ -138,7 +138,7 @@ class ThreatDetector:
         else:
             logs = []
 
-            logs.append(log_entry)
+        logs.append(log_entry)
 
         with open(log_path, "w") as file:
             json.dump(logs, file, indent=4)
@@ -148,6 +148,4 @@ class ThreatDetector:
         print(f"- Location: {gps}")
         print(f"- Logged to: {log_path}")
 
-        # Trigger camera with the same timestamp
-        trigger_camera(timestamp)
 

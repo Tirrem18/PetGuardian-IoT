@@ -71,21 +71,6 @@ def send_data_all(image_path, timestamp):
     }
     payload_json = json.dumps(payload)
 
-    # MQTT
-    try:
-        client = mqtt.Client(client_id="camera_client")
-        client.username_pw_set(USERNAME, PASSWORD)
-        client.tls_set()
-        client.loop_start()
-        client.connect(BROKER, PORT)
-        time.sleep(1)
-        client.publish(TOPIC_PUBLISH, payload_json)
-        client.loop_stop()
-        client.disconnect()
-        print("📤 Image sent to MQTT broker.")
-    except Exception as e:
-        print(f"❌ MQTT error: {e}")
-
     # Azure
     try:
         azure = IoTHubDeviceClient.create_from_connection_string(IOTHUB_CONNECTION_STRING)
@@ -121,6 +106,34 @@ def trigger_camera(timestamp):
         except Exception as e:
             print(f"❌ Real camera error: {e}")
             path = None
+
+    elif INTERACTIVE_MODE:
+        print("🧪 Manual Camera Test Mode:")
+        print("1. Angry Dog")
+        print("2. Dirt Bike")
+        print("3. Human")
+        choice = input("Select image (1-3): ").strip()
+
+        test_images = {
+            "1": "dog.png",
+            "2": "bike.png",
+            "3": "human.png"
+        }
+
+        selected = test_images.get(choice)
+        if not selected:
+            print("❌ Invalid choice.")
+            return
+
+        src_path = os.path.join(TEST_DIR, selected)
+        try:
+            with open(src_path, "rb") as src, open(path, "wb") as dst:
+                dst.write(src.read())
+            print(f"🧪 Test image copied: {path}")
+        except Exception as e:
+            print(f"❌ Failed to copy test image: {e}")
+            path = None
+
     else:
         try:
             cap = cv2.VideoCapture(0)
@@ -140,41 +153,10 @@ def trigger_camera(timestamp):
         print("⚠️ No image captured — using fallback.")
     send_data_all(path, timestamp)
 
-def run_manual_test():
-    print("🧪 Manual Camera Test Mode:")
-    print("1. Angry Dog")
-    print("2. Dirt Bike")
-    print("3. Fox in Yard")
-    choice = input("Select image (1-3): ").strip()
-
-    test_images = {
-        "1": "dog.png",
-        "2": "bike.png",
-        "3": "fox.png"
-    }
-
-    selected = test_images.get(choice)
-    if not selected:
-        print("❌ Invalid choice.")
-        return
-
-    src_path = os.path.join(TEST_DIR, selected)
-    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-    dest_filename = f"{timestamp.replace(':', '-').replace(' ', '_')}.jpg"
-    dest_path = os.path.join(SAVE_DIR, dest_filename)
-
-    try:
-        with open(src_path, "rb") as src, open(dest_path, "wb") as dst:
-            dst.write(src.read())
-        print(f" Test image copied: {dest_path}")
-        send_data_all(dest_path, timestamp)
-    except Exception as e:
-        print(f"❌ Failed to send image: {e}")
-
 # MQTT logic
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
-        print("CAMERA Connected to broker.")
+        print("📡 CAMERA Connected to broker.")
         client.subscribe(TOPIC_TRIGGER)
         print(f"📡 Subscribed to: {TOPIC_TRIGGER}")
     else:
@@ -185,7 +167,9 @@ def on_message(client, userdata, msg):
     try:
         payload = json.loads(msg.payload.decode())
         if payload.get("command") == "get_camera":
-            timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+            timestamp = payload.get("timestamp")
+            if not timestamp:
+                timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
             print("📸 Trigger received. Capturing image...")
             trigger_camera(timestamp)
         else:
@@ -193,24 +177,34 @@ def on_message(client, userdata, msg):
     except Exception as e:
         print(f"❌ Failed to handle camera trigger: {e}")
 
-
-
 def start_camera_listener():
-    print("📡 Camera listener active — waiting for 'get_camera' ping...")
-    try:
-        client = mqtt.Client(client_id="camera_sensor")
-        client.username_pw_set(USERNAME, PASSWORD)
-        client.tls_set()
-        client.on_connect = on_connect
-        client.on_message = on_message
-        time.sleep(0.25)
-        client.connect(BROKER, PORT, 60)
-        client.loop_forever()
-    except KeyboardInterrupt:
-        print("🛑 Camera listener stopped.")
+    print("📡 Starting CAMERA MQTT listener...")
+
+    client = mqtt.Client(client_id="camera_sensor")
+    client.username_pw_set(USERNAME, PASSWORD)
+    client.tls_set()
+
+    client.on_connect = on_connect
+    client.on_message = on_message
+
+    max_retries = 10
+    retry_delay = 1
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"🔄 CAMERA MQTT connect attempt {attempt}...")
+            client.connect(BROKER, PORT, 60)
+            client.loop_forever()
+            break  # Successful connection exits loop
+        except Exception as e:
+            print(f"❌ CAMERA attempt {attempt} failed: {e}")
+            if attempt < max_retries:
+                time.sleep(retry_delay)
+            else:
+                print("🛑 Max retries reached. CAMERA MQTT connection failed.")
+
 
 # Entry
 if __name__ == "__main__":
     INTERACTIVE_MODE = True
     start_camera_listener()
-
