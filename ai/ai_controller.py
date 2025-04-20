@@ -52,11 +52,13 @@ def on_message(client, userdata, msg):
 
         if result == "awaiting_gps":
             print("🛰️ Waiting for GPS fix to confirm threat...")
-            client.publish("petguardian/trigger/gps", json.dumps({ "command": "get_gps" }))
+            publish_with_retry(client, "petguardian/trigger/gps", { "command": "get_gps" })
+
 
         elif result == "threat_triggered":
             print("📸 Threat confirmed — triggering camera!")
-            client.publish("petguardian/trigger/camera", json.dumps({ "command": "get_camera" }))
+            publish_with_retry(client, "petguardian/trigger/camera", { "command": "get_camera" })
+
 
     except Exception as e:
         print(f"⚠️ Error processing message: {e}")
@@ -86,6 +88,25 @@ def start_ai_listener():
                 time.sleep(retry_delay)
             else:
                 print("🛑 Max retries reached. MQTT connection failed.")
+
+def publish_with_retry(client, topic, payload_dict, max_retries=3):
+    payload = json.dumps(payload_dict)
+    for attempt in range(1, max_retries + 1):
+        try:
+            result = client.publish(topic, payload)
+            status = result[0]
+            if status == 0:
+                print(f"📤 Published to {topic}: {payload}")
+                break
+            else:
+                raise Exception(f"Publish returned error status {status}")
+        except Exception as e:
+            print(f"⚠️ MQTT publish error (attempt {attempt}): {e}")
+            if attempt < max_retries:
+                time.sleep(1)
+            else:
+                print(f"🛑 Failed to publish to {topic} after {max_retries} attempts.")
+
 
 # Entry point
 if __name__ == "__main__":

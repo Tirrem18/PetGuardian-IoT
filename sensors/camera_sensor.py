@@ -71,29 +71,43 @@ def send_data_all(image_path, timestamp):
     }
     payload_json = json.dumps(payload)
 
-    # Azure
-    try:
-        azure = IoTHubDeviceClient.create_from_connection_string(IOTHUB_CONNECTION_STRING)
-        azure.send_message(Message(payload_json))
-        azure.disconnect()
-        print("☁️ Image sent to Azure IoT Hub.")
-    except Exception as e:
-        print(f"❌ Azure error: {e}")
+    # Azure IoT Hub Retry
+    max_retries = 3
+    for attempt in range(1, max_retries + 1):
+        try:
+            azure = IoTHubDeviceClient.create_from_connection_string(IOTHUB_CONNECTION_STRING)
+            azure.send_message(Message(payload_json))
+            azure.disconnect()
+            print("☁️ Image sent to Azure IoT Hub.")
+            break
+        except Exception as e:
+            print(f"❌ Azure error (attempt {attempt}): {e}")
+            if attempt < max_retries:
+                time.sleep(1)
+            else:
+                print("🛑 Azure send failed after max retries.")
 
-    # Cosmos
-    try:
-        encoded_doc = base64.b64encode(payload_json.encode()).decode()
-        doc = {
-            "id": str(uuid.uuid4()),
-            "sensor": "camera",
-            "timestamp": timestamp,
-            "image_base64": encoded_img,
-            "deviceId": "collar01"
-        }
-        container.create_item(body=doc)
-        print("📦 Image saved to Cosmos DB.")
-    except Exception as e:
-        print(f"❌ Cosmos error: {e}")
+    # Cosmos DB Retry
+    for attempt in range(1, max_retries + 1):
+        try:
+            encoded_doc = base64.b64encode(payload_json.encode()).decode()
+            doc = {
+                "id": str(uuid.uuid4()),
+                "sensor": "camera",
+                "timestamp": timestamp,
+                "image_base64": encoded_img,
+                "deviceId": "collar01"
+            }
+            container.create_item(body=doc)
+            print("📦 Image saved to Cosmos DB.")
+            break
+        except Exception as e:
+            print(f"❌ Cosmos DB error (attempt {attempt}): {e}")
+            if attempt < max_retries:
+                time.sleep(1)
+            else:
+                print("🛑 Cosmos write failed after max retries.")
+
 
 def trigger_camera(timestamp):
     filename = f"{timestamp.replace(':', '-').replace(' ', '_')}.jpg"

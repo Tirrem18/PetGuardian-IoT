@@ -127,19 +127,30 @@ def run_gps_once():
     except Exception as e:
         print(f"❌ Cosmos error: {e}")
 
-    try:
-        client = mqtt.Client(client_id="gps_client")
-        client.username_pw_set(USERNAME, PASSWORD)
-        client.tls_set()
-        client.connect(BROKER, PORT)
-        client.loop_start()
-        time.sleep(1)
-        client.publish(TOPIC_PUBLISH, payload)
-        client.loop_stop()
-        client.disconnect()
-        print("📤 Sent GPS to MQTT broker.")
-    except Exception as e:
-        print(f"⚠️ MQTT error: {e}")
+    max_mqtt_retries = 3
+    for attempt in range(1, max_mqtt_retries + 1):
+        try:
+            print(f"📡 MQTT attempt {attempt} — connecting...")
+            client = mqtt.Client(client_id="gps_client")
+            client.username_pw_set(USERNAME, PASSWORD)
+            client.tls_set()
+
+            client.connect(BROKER, PORT)
+            client.loop_start()
+            time.sleep(0.5)  # Give connection time to stabilize
+            client.publish(TOPIC_PUBLISH, payload)
+            time.sleep(0.5)  # Let message send
+            client.loop_stop()
+            client.disconnect()
+            print("📤 Sent GPS to MQTT broker.")
+            break
+        except Exception as e:
+            print(f"⚠️ MQTT publish failed (attempt {attempt}): {e}")
+            if attempt == max_mqtt_retries:
+                print("🛑 MQTT failed after maximum retries.")
+            else:
+                time.sleep(1)
+
 
 def on_connect(client, userdata, flags, rc):
     if rc == 0:

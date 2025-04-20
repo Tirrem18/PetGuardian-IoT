@@ -2,9 +2,10 @@ import sys
 import time
 import os
 import json
+from math import radians, cos, sin, sqrt, atan2
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sensors.camera_sensor import trigger_camera
-from math import radians, cos, sin, sqrt, atan2
 
 class ThreatDetector:
     def __init__(self, home_location=None, safe_radius=30, threat_cooldown_seconds=30, sound_window=10, min_sounds=3, min_sound_interval=1):
@@ -22,11 +23,20 @@ class ThreatDetector:
         self.latest_gps = None           # Most recent GPS reading (lat, lon)
         self.last_trigger_time = 0       # Time of last confirmed threat
         self.awaiting_gps = False        # Set to True after sound spike detected
+        self.awaiting_gps_since = None   # Time GPS was first requested
 
     def handle(self, payload):
         """
         Main handler called by ai_controller.py.
         """
+        # Check for GPS timeout
+        if self.awaiting_gps and self.awaiting_gps_since:
+            if time.time() - self.awaiting_gps_since > 15:
+                print("⏱️ GPS timeout — no fix received within 15 seconds. Resetting AI state.")
+                self.awaiting_gps = False
+                self.awaiting_gps_since = None
+                self.sound_timestamps.clear()
+
         sensor_type = payload.get("sensor")
 
         if sensor_type == "acoustic":
@@ -42,7 +52,6 @@ class ThreatDetector:
         """
         now = time.time()
 
-        # If min_sounds = 1, don't enforce spacing
         if self.min_sounds > 1 and self.sound_timestamps:
             time_since_last = now - self.sound_timestamps[-1]
             if time_since_last < self.min_sound_interval:
@@ -51,10 +60,10 @@ class ThreatDetector:
         self.sound_timestamps.append(now)
         self.sound_timestamps = [t for t in self.sound_timestamps if now - t <= self.sound_window]
 
-        # If enough sounds and cooldown passed → request GPS
         if len(self.sound_timestamps) >= self.min_sounds:
             if now - self.last_trigger_time >= self.threat_cooldown_seconds:
                 self.awaiting_gps = True
+                self.awaiting_gps_since = now
                 print("📡 Sound spike detected — awaiting GPS position.")
                 return "awaiting_gps"
 
@@ -72,12 +81,12 @@ class ThreatDetector:
             return False
 
         if not self.awaiting_gps:
-            return False  # We weren’t waiting for this
+            return False
 
-        self.awaiting_gps = False  # Reset flag
+        self.awaiting_gps = False
+        self.awaiting_gps_since = None
         now = time.time()
 
-        # Determine if outside zone
         outside_zone = True
         if self.home_location and self.latest_gps:
             outside_zone = self._is_outside_safe_zone()
@@ -87,7 +96,6 @@ class ThreatDetector:
             self.sound_timestamps.clear()
             return False
 
-        # Confirm threat
         self._trigger_threat_response()
         self.sound_timestamps.clear()
         self.last_trigger_time = now
@@ -147,5 +155,3 @@ class ThreatDetector:
         print(f"- Time: {timestamp}")
         print(f"- Location: {gps}")
         print(f"- Logged to: {log_path}")
-
-
