@@ -17,9 +17,9 @@ def main():
     acoustic_thread = threading.Thread(target=lambda: safe_start("Acoustic", run_acoustic_full))
 
     gps_thread.start()
-    time.sleep(1)
+    time.sleep(2)
     cam_thread.start()
-    time.sleep(1)
+    time.sleep(2)
     ai_thread.start()
     time.sleep(5)
     acoustic_thread.start()
