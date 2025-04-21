@@ -153,10 +153,9 @@ def run_gps_once():
     max_retries = 3
     for attempt in range(1, max_retries + 1):
         try:
-            mqtt_client.loop_start()
             mqtt_client.publish(TOPIC_PUBLISH, payload)
-            mqtt_client.loop_stop()
             print("📤 Sent GPS to MQTT broker.")
+
             break
         except Exception as e:
             print(f"⚠️ MQTT publish failed (attempt {attempt}): {e}")
@@ -199,7 +198,7 @@ def start_gps_listener():
         try:
             print(f"🔄 GPS MQTT connect attempt {attempt}...")
             mqtt_client.connect(BROKER, PORT, 60)
-            mqtt_client.loop_forever()
+            mqtt_client.loop_start()
             break
         except Exception as e:
             print(f"❌ GPS attempt {attempt} failed: {e}")

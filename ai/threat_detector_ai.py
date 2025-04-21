@@ -8,7 +8,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sensors.camera_sensor import trigger_camera
 
 class ThreatDetector:
-    def __init__(self, home_location=None, safe_radius=30, threat_cooldown_seconds=30, sound_window=10, min_sounds=3, min_sound_interval=1):
+    def __init__(self, home_location=None, safe_radius=30, threat_cooldown_seconds=30,
+                 sound_window=10, min_sounds=3, min_sound_interval=1):
         """
         Initializes the threat detection system.
         """
@@ -30,12 +31,16 @@ class ThreatDetector:
         Main handler called by ai_controller.py.
         """
         # Check for GPS timeout
-        if self.awaiting_gps and self.awaiting_gps_since:
-            if time.time() - self.awaiting_gps_since > 15:
-                print("⏱️ GPS timeout — no fix received within 15 seconds. Resetting AI state.")
-                self.awaiting_gps = False
-                self.awaiting_gps_since = None
-                self.sound_timestamps.clear()
+        if self.awaiting_gps_since and time.time() - self.awaiting_gps_since > 15:
+            print("⏱️ GPS timeout — no fix received within 15 seconds. Assuming pet is outside zone.")
+            self.awaiting_gps = False
+            self.awaiting_gps_since = None
+            self.latest_gps = None  # Will log "unknown"
+            self._trigger_threat_response()
+            self.sound_timestamps.clear()
+            self.last_trigger_time = time.time()
+            return "threat_triggered"
+
 
         sensor_type = payload.get("sensor")
 

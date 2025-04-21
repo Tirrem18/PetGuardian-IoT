@@ -208,7 +208,7 @@ def start_camera_listener():
         try:
             print(f"🔄 CAMERA MQTT connect attempt {attempt}...")
             client.connect(BROKER, PORT, 60)
-            client.loop_forever()
+            client.loop_start()
             break  # Successful connection exits loop
         except Exception as e:
             print(f"❌ CAMERA attempt {attempt} failed: {e}")

@@ -5,7 +5,7 @@ from ai import ai_controller
 
 def safe_start(name, func):
     try:
-        print(f"🧵 Starting {name} listener thread...")
+        print(f" Starting {name} listener thread...")
         func()
     except Exception as e:
         print(f"❌ {name} thread crashed: {e}")
@@ -21,7 +21,7 @@ def main():
     cam_thread.start()
     time.sleep(2)
     ai_thread.start()
-    time.sleep(5)
+    time.sleep(7)
     acoustic_thread.start()
 
     gps_thread.join()
