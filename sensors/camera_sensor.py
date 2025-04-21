@@ -8,7 +8,6 @@ import paho.mqtt.client as mqtt
 # Azure & Cosmos DB
 from azure.iot.device import IoTHubDeviceClient, Message
 from azure.cosmos import CosmosClient
-from picamera2 import Picamera2
 
 # Mode selection from environment
 CAMERA_MODE = os.getenv("CAMERA_MODE", "").strip().lower() == "interactive"
@@ -45,20 +44,19 @@ container = database.get_container_client(CONTAINER_NAME)
 # Attempt camera initialization
 try:
     if USE_REAL_CAMERA:
-        from picamera2 import PiCamera2
-        REAL_CAMERA = True
-        print("[INIT] Real camera mode activated.")
+        import cv2
+        cap_test = cv2.VideoCapture(0)
+        if cap_test.isOpened():
+            cap_test.release()
+            REAL_CAMERA = True
+            print("[INIT] Real camera mode activated.")
+        else:
+            raise Exception("No accessible USB camera found.")
     else:
         raise ImportError("Virtual camera mode forced by environment")
-except ImportError as e:
-    import cv2
+except Exception as e:
     REAL_CAMERA = False
     print(f"[INIT] Virtual camera mode activated. Reason: {e}")
-
-# PiCamera setup
-if REAL_CAMERA:
-    camera = PiCamera2()
-    camera.resolution = (640, 480)
 
 # Base64 encoder
 def encode_image_to_base64(path):
@@ -110,22 +108,26 @@ def send_data_all(image_path, timestamp):
             time.sleep(1)
 
 # Capture or simulate image
-
 def trigger_camera(timestamp):
     filename = f"{timestamp.replace(':', '-').replace(' ', '_')}.jpg"
     path = os.path.join(SAVE_DIR, filename)
 
-    # Interactive mode with real camera
     if CAMERA_MODE and REAL_CAMERA:
         input("[INTERACTIVE] Press 'C' to manually trigger camera capture...")
         try:
-            camera.capture(path)
-            print(f"[CAPTURE] Real image saved: {path}")
+            cap = cv2.VideoCapture(0)
+            ret, frame = cap.read()
+            cap.release()
+            if ret:
+                cv2.imwrite(path, frame)
+                print(f"[CAPTURE] USB webcam image saved: {path}")
+            else:
+                print("[ERROR] Camera failed to capture.")
+                path = None
         except Exception as e:
             print(f"[ERROR] Camera failed: {e}")
             path = None
 
-    # Interactive mode with no real camera — manual image selection
     elif CAMERA_MODE and not REAL_CAMERA:
         print("[INTERACTIVE] Manual test image selection:")
         print("1. Angry Dog\n2. Dirt Bike\n3. Human")
@@ -146,28 +148,29 @@ def trigger_camera(timestamp):
             print(f"[ERROR] Test image copy failed: {e}")
             path = None
 
-    # Auto mode with real camera
     elif not CAMERA_MODE and REAL_CAMERA:
         try:
-            camera.capture(path)
-            print(f"[CAPTURE] Real image captured automatically: {path}")
+            cap = cv2.VideoCapture(0)
+            ret, frame = cap.read()
+            cap.release()
+            if ret:
+                cv2.imwrite(path, frame)
+                print(f"[CAPTURE] USB webcam image saved: {path}")
+            else:
+                print("[ERROR] Camera auto-capture failed.")
+                path = None
         except Exception as e:
             print(f"[ERROR] Auto real camera capture failed: {e}")
             path = None
 
-    # Auto mode with no real camera — simulate virtual result
     elif not CAMERA_MODE and not REAL_CAMERA:
-        # Skip OpenCV entirely — just simulate "no image"
         print("[SIMULATION] Virtual mode active — no image generated.")
         path = None
 
-    # Fallback if capture failed
     if not path:
         print("[WARNING] No image captured. Using fallback response.")
 
-    # Send image (real or simulated)
     send_data_all(path, timestamp)
-
 
 # MQTT setup and trigger listener
 def on_connect(client, userdata, flags, rc):
@@ -216,7 +219,6 @@ def start_camera_listener():
 if __name__ == "__main__":
     start_camera_listener()
 
-    # Start manual capture loop if interactive
     if CAMERA_MODE:
         import keyboard
         print("[INTERACTIVE] Press 'C' to capture, or 'X' to exit.")
@@ -225,7 +227,7 @@ if __name__ == "__main__":
                 if keyboard.is_pressed('c'):
                     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
                     trigger_camera(timestamp)
-                    time.sleep(1)  # debounce
+                    time.sleep(1)
                 elif keyboard.is_pressed('x'):
                     print("[EXIT] Exiting interactive mode.")
                     break
