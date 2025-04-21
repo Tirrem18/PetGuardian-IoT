@@ -4342,4 +4342,6 @@ SOUND=false CAMERA=true GPS=false python main.py
 SOUND=true CAMERA=true GPS=true python main.py
 ```
 
----
+---OR
+
+SOUND=true SOUND_MODE=interactive python3 acoustic_sensor.py on PI

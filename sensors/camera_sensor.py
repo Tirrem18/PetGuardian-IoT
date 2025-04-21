@@ -114,6 +114,7 @@ def trigger_camera(timestamp):
     filename = f"{timestamp.replace(':', '-').replace(' ', '_')}.jpg"
     path = os.path.join(SAVE_DIR, filename)
 
+    # Interactive mode with real camera
     if CAMERA_MODE and REAL_CAMERA:
         input("[INTERACTIVE] Press 'C' to manually trigger camera capture...")
         try:
@@ -123,6 +124,7 @@ def trigger_camera(timestamp):
             print(f"[ERROR] Camera failed: {e}")
             path = None
 
+    # Interactive mode with no real camera — manual image selection
     elif CAMERA_MODE and not REAL_CAMERA:
         print("[INTERACTIVE] Manual test image selection:")
         print("1. Angry Dog\n2. Dirt Bike\n3. Human")
@@ -143,6 +145,7 @@ def trigger_camera(timestamp):
             print(f"[ERROR] Test image copy failed: {e}")
             path = None
 
+    # Auto mode with real camera
     elif not CAMERA_MODE and REAL_CAMERA:
         try:
             camera.capture(path)
@@ -151,25 +154,19 @@ def trigger_camera(timestamp):
             print(f"[ERROR] Auto real camera capture failed: {e}")
             path = None
 
+    # Auto mode with no real camera — simulate virtual result
     elif not CAMERA_MODE and not REAL_CAMERA:
-        try:
-            cap = cv2.VideoCapture(0)
-            ret, frame = cap.read()
-            cap.release()
-            if ret:
-                cv2.imwrite(path, frame)
-                print(f"[SIMULATION] Webcam image saved: {path}")
-            else:
-                print("[ERROR] Webcam capture failed.")
-                path = None
-        except Exception as e:
-            print(f"[ERROR] Webcam error: {e}")
-            path = None
+        # Skip OpenCV entirely — just simulate "no image"
+        print("[SIMULATION] Virtual mode active — no image generated.")
+        path = None
 
+    # Fallback if capture failed
     if not path:
-        print("[WARNING] No image captured.")
+        print("[WARNING] No image captured. Using fallback response.")
 
+    # Send image (real or simulated)
     send_data_all(path, timestamp)
+
 
 # MQTT setup and trigger listener
 def on_connect(client, userdata, flags, rc):
