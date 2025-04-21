@@ -217,18 +217,20 @@ def start_camera_listener():
 
 # Main entry point
 if __name__ == "__main__":
-    start_camera_listener()
+    start_camera_listener()  # Start MQTT once
 
     if CAMERA_MODE:
-        print("[INTERACTIVE] Type 'C' then Enter to capture, or 'X' to exit.")
+        import keyboard
+        print("[INTERACTIVE] Press 'C' to capture, or 'X' to exit.")
         try:
             while True:
-                user_input = input("[INPUT] >> ").strip().lower()
-                if user_input == 'c':
+                if keyboard.is_pressed('c'):
                     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
                     trigger_camera(timestamp)
-                elif user_input == 'x':
+                    time.sleep(1)
+                elif keyboard.is_pressed('x'):
                     print("[EXIT] Exiting interactive mode.")
                     break
+                time.sleep(0.1)
         except KeyboardInterrupt:
             print("[EXIT] Manual mode interrupted.")
