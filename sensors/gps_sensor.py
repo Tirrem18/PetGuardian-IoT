@@ -209,17 +209,16 @@ if __name__ == "__main__":
 
     # Interactive mode logic
     if GPS_MODE:
-        import keyboard
-        print("[INTERACTIVE] Press 'G' to manually trigger GPS, or 'X' to exit.")
+        print("[INTERACTIVE] Type 'G' then Enter to trigger GPS, or 'X' to exit.")
         try:
             while True:
-                if keyboard.is_pressed('g'):
+                user_input = input("[INPUT] >> ").strip().lower()
+                if user_input == 'g':
                     print("[INPUT] Manual GPS trigger activated.")
                     run_gps_once()
-                    time.sleep(0.1)  # debounce
-                elif keyboard.is_pressed('x'):
+                elif user_input == 'x':
                     print("[EXIT] Exiting GPS interactive mode.")
                     break
-                time.sleep(0.1)
         except KeyboardInterrupt:
             print("[EXIT] GPS interactive loop interrupted.")
+
