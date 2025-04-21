@@ -9,6 +9,19 @@ from azure.iot.device import IoTHubDeviceClient, Message
 USE_REAL_SENSOR = os.getenv("SOUND", "true").strip().lower() == "true"
 INTERACTIVE_MODE = os.getenv("SOUND_MODE", "").strip().lower() == "interactive"
 
+try:
+    if USE_REAL_SENSOR:
+        import RPi.GPIO as GPIO
+        REAL_SENSOR = True
+        print("[INIT] Real sensor mode activated.")
+    else:
+        raise ImportError("Virtual mode forced explicitly by environment variable")
+except ImportError as e:
+    import keyboard
+    REAL_SENSOR = False
+    print(f"[INIT] Virtual sensor mode activated. Reason: {e}")
+
+
 # MQTT Configuration
 BROKER = "a5c9d1ea0e224376ad6285eb8aa83d55.s1.eu.hivemq.cloud"
 PORT = 8883
@@ -23,21 +36,12 @@ AZURE_CONNECTION_STRING = "HostName=IoTPawTrack.azure-devices.net;DeviceId=colla
 SOUND_SENSOR_PIN = 17
 mqtt_client = None
 
-# Attempt to import GPIO if using real sensor
-try:
-    if USE_REAL_SENSOR:
-        import RPi.GPIO as GPIO
-        REAL_SENSOR = True
-        print("[INIT] Real sensor mode activated.")
-    else:
-        raise ImportError("Virtual mode forced by environment variable")
-except ImportError as e:
-    REAL_SENSOR = False
-    print(f"[INIT] Virtual sensor mode activated. Reason: {e}")
+
 
 # Log sound event to local JSON file
 def log_event(event, timestamp):
     log_entry = {"timestamp": timestamp, "event": event}
+
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     log_dir = os.path.join(base_dir, "data", "logs")
     log_path = os.path.join(log_dir, "sound_log.json")
@@ -52,6 +56,7 @@ def log_event(event, timestamp):
             logs = []
 
     logs.append(log_entry)
+
     with open(log_path, "w") as f:
         json.dump(logs, f, indent=4)
 
@@ -60,6 +65,7 @@ def log_event(event, timestamp):
 # Send event to Azure IoT Hub
 def send_to_azure(event, timestamp):
     payload = json.dumps({"sensor": "acoustic", "event": event, "timestamp": timestamp})
+
     for attempt in range(3):
         try:
             client = IoTHubDeviceClient.create_from_connection_string(AZURE_CONNECTION_STRING)
@@ -74,6 +80,7 @@ def send_to_azure(event, timestamp):
 # Send event to MQTT broker
 def send_to_broker(event, timestamp):
     payload = json.dumps({"sensor": "acoustic", "event": event, "timestamp": timestamp})
+
     for attempt in range(3):
         try:
             mqtt_client.publish(TOPIC, payload)
@@ -108,16 +115,18 @@ def start_acoustic_sensor():
             print("[EXIT] Real sensor listening stopped.")
 
     elif INTERACTIVE_MODE:
-        print("[MODE] Interactive input mode: Type 'S' then Enter to trigger event, or 'X' to exit.")
+        print("[MODE] Interactive keyboard mode: Press 'S' to trigger event, 'X' to exit.")
         try:
             while True:
-                user_input = input("[INPUT] >> ").strip().lower()
-                if user_input == 's':
-                    print("[INPUT] Simulated sound event.")
-                    handle_sound_event()
-                elif user_input == 'x':
-                    print("[EXIT] Exiting interactive mode.")
-                    break
+                event = keyboard.read_event()
+                if event.event_type == keyboard.KEY_DOWN:
+                    if event.name.lower() == 's':
+                        print("[INPUT] Manually triggered sound event.")
+                        handle_sound_event()
+                    elif event.name.lower() == 'x':
+                        print("[EXIT] Exiting interactive mode.")
+                        break
+                time.sleep(0.1)
         except KeyboardInterrupt:
             print("[EXIT] Interactive mode stopped.")
 
@@ -133,6 +142,53 @@ def start_acoustic_sensor():
                     handle_sound_event()
                 cooldown = random.uniform(10, 15)
                 time.sleep(cooldown)
+        except KeyboardInterrupt:
+            print("[EXIT] Simulation stopped.")
+
+    if INTERACTIVE_MODE:
+        if REAL_SENSOR:
+            print("[MODE] Interactive mode: Press ENTER to simulate sound event.")
+            while True:
+                input("[INPUT] Press ENTER to simulate:")
+                handle_sound_event()
+        else:
+            print("[MODE] Interactive keyboard mode: Press 'S' to simulate sound, 'X' to exit.")
+            while True:
+                event = keyboard.read_event()
+                if event.event_type == keyboard.KEY_DOWN:
+                    if event.name.lower() == 's':
+                        print("[INPUT] Keyboard-triggered event.")
+                        handle_sound_event()
+                    elif event.name.lower() == 'x':
+                        print("[EXIT] Exiting interactive mode.")
+                        break
+                time.sleep(0.1)
+
+    elif REAL_SENSOR:
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(SOUND_SENSOR_PIN, GPIO.IN)
+        print("[MODE] Listening for real sensor events.")
+
+        try:
+            while True:
+                if GPIO.input(SOUND_SENSOR_PIN) == GPIO.HIGH:
+                    print("[EVENT] Detected sound event.")
+                    handle_sound_event()
+                    time.sleep(0.5)
+        except KeyboardInterrupt:
+            GPIO.cleanup()
+            print("[EXIT] Sensor listening stopped.")
+
+    else:
+        print("[MODE] Virtual mode: Auto-generating sound events.")
+        try:
+            while True:
+                for _ in range(3):
+                    time.sleep(random.uniform(1, 3))
+                    print("[SIMULATION] Generated sound event.")
+                    handle_sound_event()
+                    time.sleep(0.5)
+                time.sleep(random.uniform(10, 15))
         except KeyboardInterrupt:
             print("[EXIT] Simulation stopped.")
 
