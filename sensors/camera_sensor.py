@@ -113,7 +113,7 @@ def trigger_camera(timestamp):
     path = os.path.join(SAVE_DIR, filename)
 
     if CAMERA_MODE and REAL_CAMERA:
-        input("[INTERACTIVE] Press 'C' to manually trigger camera capture...")
+        input("[INTERACTIVE] Press Enter to capture image...")
         try:
             cap = cv2.VideoCapture(0)
             ret, frame = cap.read()
@@ -220,17 +220,15 @@ if __name__ == "__main__":
     start_camera_listener()
 
     if CAMERA_MODE:
-        import keyboard
-        print("[INTERACTIVE] Press 'C' to capture, or 'X' to exit.")
+        print("[INTERACTIVE] Type 'C' then Enter to capture, or 'X' to exit.")
         try:
             while True:
-                if keyboard.is_pressed('c'):
+                user_input = input("[INPUT] >> ").strip().lower()
+                if user_input == 'c':
                     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
                     trigger_camera(timestamp)
-                    time.sleep(1)
-                elif keyboard.is_pressed('x'):
+                elif user_input == 'x':
                     print("[EXIT] Exiting interactive mode.")
                     break
-                time.sleep(0.1)
         except KeyboardInterrupt:
             print("[EXIT] Manual mode interrupted.")
