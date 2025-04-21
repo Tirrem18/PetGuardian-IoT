@@ -8,6 +8,7 @@ import paho.mqtt.client as mqtt
 # Azure & Cosmos DB
 from azure.iot.device import IoTHubDeviceClient, Message
 from azure.cosmos import CosmosClient
+from picamera2 import Picamera2
 
 # Mode selection from environment
 CAMERA_MODE = os.getenv("CAMERA_MODE", "").strip().lower() == "interactive"
@@ -44,7 +45,7 @@ container = database.get_container_client(CONTAINER_NAME)
 # Attempt camera initialization
 try:
     if USE_REAL_CAMERA:
-        from picamera import PiCamera
+        from picamera2 import PiCamera2
         REAL_CAMERA = True
         print("[INIT] Real camera mode activated.")
     else:
@@ -56,7 +57,7 @@ except ImportError as e:
 
 # PiCamera setup
 if REAL_CAMERA:
-    camera = PiCamera()
+    camera = PiCamera2()
     camera.resolution = (640, 480)
 
 # Base64 encoder
