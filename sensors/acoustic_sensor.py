@@ -4,6 +4,9 @@ import os
 import random
 import paho.mqtt.client as mqtt
 from azure.iot.device import IoTHubDeviceClient, Message
+import logging
+logging.getLogger("azure").setLevel(logging.WARNING)
+
 
 # Configuration via environment variables
 USE_REAL_SENSOR = os.getenv("SOUND", "true").strip().lower() == "true"

@@ -9,6 +9,9 @@ import uuid
 import paho.mqtt.client as mqtt
 from azure.iot.device import IoTHubDeviceClient, Message
 from azure.cosmos import CosmosClient
+import logging
+logging.getLogger("azure").setLevel(logging.WARNING)
+
 
 # --- ENVIRONMENT CONFIG ---
 CAMERA_MODE = os.getenv("CAMERA_MODE", "").strip().lower() == "interactive"

@@ -7,6 +7,9 @@ import random
 import paho.mqtt.client as mqtt
 from azure.iot.device import IoTHubDeviceClient, Message
 from azure.cosmos import CosmosClient
+import logging
+logging.getLogger("azure").setLevel(logging.WARNING)
+
 
 # Environment-based mode selection
 GPS_MODE = os.getenv("GPS_MODE", "").strip().lower() == "interactive"
