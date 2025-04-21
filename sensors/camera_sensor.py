@@ -9,17 +9,9 @@ import paho.mqtt.client as mqtt
 from azure.iot.device import IoTHubDeviceClient, Message
 from azure.cosmos import CosmosClient
 
-# Enable interactive input if run directly
-INTERACTIVE_MODE = False
-
-# Try PiCamera, fallback to OpenCV
-try:
-    from picamera import PiCamera
-    REAL_CAMERA = True
-except ImportError:
-    import cv2
-    print("⚠️ Camera module not found. Virtual mode enabled.")
-    REAL_CAMERA = False
+# Mode selection from environment
+CAMERA_MODE = os.getenv("CAMERA_MODE", "").strip().lower() == "interactive"
+USE_REAL_CAMERA = os.getenv("CAMERA", "true").strip().lower() == "true"
 
 # MQTT (HiveMQ Cloud)
 BROKER = "a5c9d1ea0e224376ad6285eb8aa83d55.s1.eu.hivemq.cloud"
@@ -29,10 +21,10 @@ PASSWORD = "Password1"
 TOPIC_PUBLISH = "petguardian/camera"
 TOPIC_TRIGGER = "petguardian/trigger/camera"
 
-# Azure
+# Azure IoT Hub
 IOTHUB_CONNECTION_STRING = "HostName=IoTPawTrack.azure-devices.net;DeviceId=collar01;SharedAccessKey=ShzFs2jgI06rAjksNrEst8Byb8x2ljbHrBGYT+raQ1E="
 
-# Cosmos
+# Cosmos DB
 COSMOS_URI = "https://petguardiandb.documents.azure.com:443/"
 COSMOS_KEY = "gb0rv4z3It79ncyssNJmhHj8mDY8eUBcZPYBfACM9GPWXbf1m2IoIxDgwUQ7dcWfyUJOxUUnSncKACDb44Qynw=="
 DATABASE_NAME = "iotdata"
@@ -49,15 +41,30 @@ cosmos_client = CosmosClient(COSMOS_URI, credential=COSMOS_KEY)
 database = cosmos_client.get_database_client(DATABASE_NAME)
 container = database.get_container_client(CONTAINER_NAME)
 
-# PiCamera init
+# Attempt camera initialization
+try:
+    if USE_REAL_CAMERA:
+        from picamera import PiCamera
+        REAL_CAMERA = True
+        print("[INIT] Real camera mode activated.")
+    else:
+        raise ImportError("Virtual camera mode forced by environment")
+except ImportError as e:
+    import cv2
+    REAL_CAMERA = False
+    print(f"[INIT] Virtual camera mode activated. Reason: {e}")
+
+# PiCamera setup
 if REAL_CAMERA:
     camera = PiCamera()
     camera.resolution = (640, 480)
 
+# Base64 encoder
 def encode_image_to_base64(path):
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode()
 
+# Sends image data to MQTT, Azure, and Cosmos DB
 def send_data_all(image_path, timestamp):
     if image_path and os.path.exists(image_path):
         encoded_img = encode_image_to_base64(image_path)
@@ -71,24 +78,20 @@ def send_data_all(image_path, timestamp):
     }
     payload_json = json.dumps(payload)
 
-    # Azure IoT Hub Retry
-    max_retries = 3
-    for attempt in range(1, max_retries + 1):
+    # Azure send
+    for attempt in range(3):
         try:
             azure = IoTHubDeviceClient.create_from_connection_string(IOTHUB_CONNECTION_STRING)
             azure.send_message(Message(payload_json))
             azure.disconnect()
-            print("☁️ Image sent to Azure IoT Hub.")
+            print("[AZURE] Image sent to IoT Hub.")
             break
         except Exception as e:
-            print(f"❌ Azure error (attempt {attempt}): {e}")
-            if attempt < max_retries:
-                time.sleep(1)
-            else:
-                print("🛑 Azure send failed after max retries.")
+            print(f"[AZURE ERROR] Attempt {attempt+1} failed: {e}")
+            time.sleep(1)
 
-    # Cosmos DB Retry
-    for attempt in range(1, max_retries + 1):
+    # Cosmos DB send
+    for attempt in range(3):
         try:
             encoded_doc = base64.b64encode(payload_json.encode()).decode()
             doc = {
@@ -99,101 +102,99 @@ def send_data_all(image_path, timestamp):
                 "deviceId": "collar01"
             }
             container.create_item(body=doc)
-            print("📦 Image saved to Cosmos DB.")
+            print("[COSMOS] Image saved to database.")
             break
         except Exception as e:
-            print(f"❌ Cosmos DB error (attempt {attempt}): {e}")
-            if attempt < max_retries:
-                time.sleep(1)
-            else:
-                print("🛑 Cosmos write failed after max retries.")
+            print(f"[COSMOS ERROR] Attempt {attempt+1} failed: {e}")
+            time.sleep(1)
 
+# Capture or simulate image
 
 def trigger_camera(timestamp):
     filename = f"{timestamp.replace(':', '-').replace(' ', '_')}.jpg"
     path = os.path.join(SAVE_DIR, filename)
 
-    if REAL_CAMERA:
+    if CAMERA_MODE and REAL_CAMERA:
+        input("[INTERACTIVE] Press 'C' to manually trigger camera capture...")
         try:
             camera.capture(path)
-            print(f"📸 Real image saved: {path}")
+            print(f"[CAPTURE] Real image saved: {path}")
         except Exception as e:
-            print(f"❌ Real camera error: {e}")
+            print(f"[ERROR] Camera failed: {e}")
             path = None
 
-    elif INTERACTIVE_MODE:
-        print("🧪 Manual Camera Test Mode:")
-        print("1. Angry Dog")
-        print("2. Dirt Bike")
-        print("3. Human")
-        choice = input("Select image (1-3): ").strip()
-
-        test_images = {
-            "1": "dog.png",
-            "2": "bike.png",
-            "3": "human.png"
-        }
-
+    elif CAMERA_MODE and not REAL_CAMERA:
+        print("[INTERACTIVE] Manual test image selection:")
+        print("1. Angry Dog\n2. Dirt Bike\n3. Human")
+        choice = input("[INPUT] Select image (1-3): ").strip()
+        test_images = {"1": "dog.png", "2": "bike.png", "3": "human.png"}
         selected = test_images.get(choice)
+
         if not selected:
-            print("❌ Invalid choice.")
+            print("[ERROR] Invalid choice.")
             return
 
         src_path = os.path.join(TEST_DIR, selected)
         try:
             with open(src_path, "rb") as src, open(path, "wb") as dst:
                 dst.write(src.read())
-            print(f"🧪 Test image copied: {path}")
+            print(f"[TEST] Image copied: {path}")
         except Exception as e:
-            print(f"❌ Failed to copy test image: {e}")
+            print(f"[ERROR] Test image copy failed: {e}")
             path = None
 
-    else:
+    elif not CAMERA_MODE and REAL_CAMERA:
+        try:
+            camera.capture(path)
+            print(f"[CAPTURE] Real image captured automatically: {path}")
+        except Exception as e:
+            print(f"[ERROR] Auto real camera capture failed: {e}")
+            path = None
+
+    elif not CAMERA_MODE and not REAL_CAMERA:
         try:
             cap = cv2.VideoCapture(0)
             ret, frame = cap.read()
+            cap.release()
             if ret:
                 cv2.imwrite(path, frame)
-                print(f"🧪 Simulated webcam image saved: {path}")
+                print(f"[SIMULATION] Webcam image saved: {path}")
             else:
-                print("❌ Simulated capture failed.")
+                print("[ERROR] Webcam capture failed.")
                 path = None
-            cap.release()
         except Exception as e:
-            print(f"❌ OpenCV error: {e}")
+            print(f"[ERROR] Webcam error: {e}")
             path = None
 
     if not path:
-        print("⚠️ No image captured — using fallback.")
+        print("[WARNING] No image captured.")
+
     send_data_all(path, timestamp)
 
-# MQTT logic
+# MQTT setup and trigger listener
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
-        print("📡 CAMERA Connected to broker.")
+        print("[MQTT] Camera connected to broker.")
         client.subscribe(TOPIC_TRIGGER)
-        print(f"📡 Subscribed to: {TOPIC_TRIGGER}")
+        print(f"[MQTT] Subscribed to: {TOPIC_TRIGGER}")
     else:
-        print("❌ MQTT connection failed.")
+        print("[MQTT ERROR] Connection failed.")
 
 def on_message(client, userdata, msg):
-    print(f"📥 Trigger received on {msg.topic}")
+    print(f"[MQTT] Trigger received on {msg.topic}")
     try:
         payload = json.loads(msg.payload.decode())
         if payload.get("command") == "get_camera":
-            timestamp = payload.get("timestamp")
-            if not timestamp:
-                timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-            print("📸 Trigger received. Capturing image...")
+            timestamp = payload.get("timestamp") or time.strftime("%Y-%m-%d %H:%M:%S")
+            print("[TRIGGER] Capturing image...")
             trigger_camera(timestamp)
         else:
-            print("⚠️ Ignored: no matching command.")
+            print("[MQTT] No matching command found.")
     except Exception as e:
-        print(f"❌ Failed to handle camera trigger: {e}")
+        print(f"[MQTT ERROR] Failed to handle message: {e}")
 
 def start_camera_listener():
-    print("📡 Starting CAMERA MQTT listener...")
-
+    print("[MQTT] Starting camera listener...")
     client = mqtt.Client(client_id="camera_sensor")
     client.username_pw_set(USERNAME, PASSWORD)
     client.tls_set()
@@ -201,24 +202,35 @@ def start_camera_listener():
     client.on_connect = on_connect
     client.on_message = on_message
 
-    max_retries = 10
-    retry_delay = 1
-
-    for attempt in range(1, max_retries + 1):
+    for attempt in range(50):
         try:
-            print(f"🔄 CAMERA MQTT connect attempt {attempt}...")
+            print(f"[MQTT] Connection attempt {attempt+1}...")
             client.connect(BROKER, PORT, 60)
             client.loop_start()
-            break  # Successful connection exits loop
+            return
         except Exception as e:
-            print(f"❌ CAMERA attempt {attempt} failed: {e}")
-            if attempt < max_retries:
-                time.sleep(retry_delay)
-            else:
-                print("🛑 Max retries reached. CAMERA MQTT connection failed.")
+            print(f"[MQTT ERROR] Attempt {attempt+1} failed: {e}")
+            time.sleep(1)
 
+    print("[MQTT ERROR] All connection attempts failed.")
 
-# Entry
+# Main entry point
 if __name__ == "__main__":
-    INTERACTIVE_MODE = True
     start_camera_listener()
+
+    # Start manual capture loop if interactive
+    if CAMERA_MODE:
+        import keyboard
+        print("[INTERACTIVE] Press 'C' to capture, or 'X' to exit.")
+        try:
+            while True:
+                if keyboard.is_pressed('c'):
+                    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                    trigger_camera(timestamp)
+                    time.sleep(1)  # debounce
+                elif keyboard.is_pressed('x'):
+                    print("[EXIT] Exiting interactive mode.")
+                    break
+                time.sleep(0.1)
+        except KeyboardInterrupt:
+            print("[EXIT] Manual mode interrupted.")

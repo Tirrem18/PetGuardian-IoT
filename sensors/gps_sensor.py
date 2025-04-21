@@ -8,8 +8,9 @@ import paho.mqtt.client as mqtt
 from azure.iot.device import IoTHubDeviceClient, Message
 from azure.cosmos import CosmosClient
 
-# Toggle manual test input if no GPS hardware is available
-INTERACTIVE_MODE = False
+# Environment-based mode selection
+GPS_MODE = os.getenv("GPS_MODE", "").strip().lower() == "interactive"
+USE_REAL_GPS = os.getenv("GPS", "true").strip().lower() == "true"
 
 # MQTT (HiveMQ Cloud)
 BROKER = "a5c9d1ea0e224376ad6285eb8aa83d55.s1.eu.hivemq.cloud"
@@ -34,28 +35,32 @@ LOG_DIR = os.path.join(BASE_DIR, "data", "logs")
 LOG_PATH = os.path.join(LOG_DIR, "gps_log.json")
 os.makedirs(LOG_DIR, exist_ok=True)
 
-# Define home location for simulated GPS generation
+# Define fallback home location for simulation
 HOME_LOCATION = (54.5742, -1.2345)
 
-# Cosmos client
+# Cosmos DB setup
 cosmos_client = CosmosClient(COSMOS_URI, credential=COSMOS_KEY)
 database = cosmos_client.get_database_client(DATABASE_NAME)
 container = database.get_container_client(CONTAINER_NAME)
 
-# MQTT client (reused for both listener and publisher)
+# MQTT client setup
 mqtt_client = mqtt.Client(client_id="gps_sensor")
 mqtt_client.username_pw_set(USERNAME, PASSWORD)
 mqtt_client.tls_set()
 
-# Check for GPS hardware
+# GPS hardware check
 try:
-    import gpsd
-    REAL_SENSOR = True
-except ImportError:
-    print("⚠️ GPS module not found. Virtual mode enabled.")
+    if USE_REAL_GPS:
+        import gpsd
+        REAL_SENSOR = True
+        print("[INIT] Real GPS sensor activated.")
+    else:
+        raise ImportError("Virtual GPS mode forced by environment")
+except ImportError as e:
     REAL_SENSOR = False
+    print(f"[INIT] Virtual GPS mode activated. Reason: {e}")
 
-# Get GPS coordinates from real or simulated source
+# Get location depending on mode
 def get_gps_location():
     if REAL_SENSOR:
         try:
@@ -63,32 +68,32 @@ def get_gps_location():
             packet = gpsd.get_current()
             return {"latitude": packet.lat, "longitude": packet.lon}
         except Exception as e:
-            print(f"❌ GPS error: {e} — assuming location unavailable.")
+            print(f"[ERROR] GPS failure: {e}. Using fallback logic.")
             return None
-    elif INTERACTIVE_MODE:
-        print("🧪 Manual GPS input mode. Press Enter or type 'x' to exit.")
+    elif GPS_MODE:
+        print("[INTERACTIVE] Manual GPS input. Press Enter or X to skip.")
         while True:
             try:
-                lat_input = input("Latitude: ").strip()
-                if lat_input == "" or lat_input.lower() == "x":
+                lat = input("Latitude: ").strip()
+                if lat.lower() in ["", "x"]:
                     return None
-                lon_input = input("Longitude: ").strip()
-                if lon_input == "" or lon_input.lower() == "x":
+                lon = input("Longitude: ").strip()
+                if lon.lower() in ["", "x"]:
                     return None
-                return {"latitude": float(lat_input), "longitude": float(lon_input)}
+                return {"latitude": float(lat), "longitude": float(lon)}
             except ValueError:
-                print("❌ Invalid input. Try again.")
+                print("[INPUT ERROR] Please enter valid numbers.")
     else:
         lat = HOME_LOCATION[0] + random.uniform(0.03, 0.1)
         lon = HOME_LOCATION[1] + random.uniform(0.03, 0.1)
         return {"latitude": round(lat, 6), "longitude": round(lon, 6)}
 
-# Append to local gps_log.json file
+# Save data to local log file
 def log_gps_data(location, timestamp):
     log_entry = {
         "timestamp": timestamp,
-        "latitude": location["latitude"],
-        "longitude": location["longitude"]
+        "latitude": location.get("latitude", "unknown"),
+        "longitude": location.get("longitude", "unknown")
     }
 
     logs = []
@@ -96,8 +101,6 @@ def log_gps_data(location, timestamp):
         try:
             with open(LOG_PATH, "r") as f:
                 logs = json.load(f)
-            if not isinstance(logs, list):
-                logs = []
         except Exception:
             logs = []
 
@@ -105,17 +108,16 @@ def log_gps_data(location, timestamp):
     with open(LOG_PATH, "w") as f:
         json.dump(logs, f, indent=4)
 
-    print("📝 Logged GPS.")
+    print("[LOG] GPS data saved.")
 
-# Main function to get GPS and send to all targets
+# Core logic to fetch and send GPS data
 def run_gps_once():
     location = get_gps_location()
-    if not location:
-        print("⚠️ No GPS location. Skipping.")
-        return
-
-    # Single shared timestamp
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+
+    if not location:
+        print("[WARNING] No location data — using fallback UNKNOWN location.")
+        location = {"latitude": "unknown", "longitude": "unknown"}
 
     log_gps_data(location, timestamp)
 
@@ -126,16 +128,16 @@ def run_gps_once():
         "timestamp": timestamp
     })
 
-    # Azure Send
+    # Azure send
     try:
         azure = IoTHubDeviceClient.create_from_connection_string(IOTHUB_CONNECTION_STRING)
         azure.send_message(Message(payload))
         azure.disconnect()
-        print("☁️ Sent GPS to Azure.")
+        print("[AZURE] GPS data sent.")
     except Exception as e:
-        print(f"❌ Azure send error: {e}")
+        print(f"[AZURE ERROR] {e}")
 
-    # Cosmos Write
+    # Cosmos write
     try:
         encoded = base64.b64encode(payload.encode()).decode()
         doc = {
@@ -145,69 +147,79 @@ def run_gps_once():
             "timestamp": timestamp
         }
         container.create_item(body=doc)
-        print("📦 Sent GPS to Cosmos DB.")
+        print("[COSMOS] GPS data stored.")
     except Exception as e:
-        print(f"❌ Cosmos error: {e}")
+        print(f"[COSMOS ERROR] {e}")
 
-    # MQTT Publish
-    max_retries = 3
-    for attempt in range(1, max_retries + 1):
+    # MQTT publish
+    for attempt in range(3):
         try:
             mqtt_client.publish(TOPIC_PUBLISH, payload)
-            print("📤 Sent GPS to MQTT broker.")
-
+            print("[MQTT] GPS data published.")
             break
         except Exception as e:
-            print(f"⚠️ MQTT publish failed (attempt {attempt}): {e}")
-            if attempt == max_retries:
-                print("🛑 MQTT failed after maximum retries.")
-            else:
+            print(f"[MQTT ERROR] Attempt {attempt+1}: {e}")
+            if attempt < 2:
                 time.sleep(1)
+            else:
+                print("[MQTT ERROR] Final attempt failed.")
 
-# MQTT on_connect callback
+# MQTT callbacks
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
-        print("✅ GPS Connected to MQTT broker.")
+        print("[MQTT] GPS connected successfully.")
         client.subscribe(TOPIC_TRIGGER)
-        print(f"📡 Subscribed to: {TOPIC_TRIGGER}")
+        print(f"[MQTT] Subscribed to: {TOPIC_TRIGGER}")
     else:
-        print("❌ MQTT connection failed.")
+        print("[MQTT ERROR] Connection failed.")
 
-# Handle incoming MQTT message
 def on_message(client, userdata, msg):
-    print(f"📥 Received message on {msg.topic}")
+    print(f"[MQTT] Message received on {msg.topic}")
     try:
         payload = json.loads(msg.payload.decode())
         if payload.get("command") == "get_gps":
-            print("🛰️ Trigger received. Collecting GPS...")
+            print("[TRIGGER] GPS request received.")
             run_gps_once()
     except Exception as e:
-        print(f"⚠️ Error in message: {e}")
+        print(f"[MQTT ERROR] Failed to process message: {e}")
 
-# Main loop for MQTT listener
+# MQTT listener
+
 def start_gps_listener():
-    print("📡 Starting GPS MQTT listener...")
+    print("[MQTT] Starting GPS listener...")
 
     mqtt_client.on_connect = on_connect
     mqtt_client.on_message = on_message
 
-    max_retries = 10
-    retry_delay = 1
-
-    for attempt in range(1, max_retries + 1):
+    for attempt in range(50):
         try:
-            print(f"🔄 GPS MQTT connect attempt {attempt}...")
+            print(f"[MQTT] Connection attempt {attempt+1}...")
             mqtt_client.connect(BROKER, PORT, 60)
             mqtt_client.loop_start()
-            break
+            return
         except Exception as e:
-            print(f"❌ GPS attempt {attempt} failed: {e}")
-            if attempt < max_retries:
-                time.sleep(retry_delay)
-            else:
-                print("🛑 Max retries reached. GPS MQTT connection failed.")
+            print(f"[MQTT ERROR] Attempt {attempt+1} failed: {e}")
+            time.sleep(1)
 
-# Entry point
+    print("[MQTT ERROR] Could not connect to MQTT broker.")
+
+# Main entry point
 if __name__ == "__main__":
-    INTERACTIVE_MODE = True
     start_gps_listener()
+
+    # Interactive mode logic
+    if GPS_MODE:
+        import keyboard
+        print("[INTERACTIVE] Press 'G' to manually trigger GPS, or 'X' to exit.")
+        try:
+            while True:
+                if keyboard.is_pressed('g'):
+                    print("[INPUT] Manual GPS trigger activated.")
+                    run_gps_once()
+                    time.sleep(0.1)  # debounce
+                elif keyboard.is_pressed('x'):
+                    print("[EXIT] Exiting GPS interactive mode.")
+                    break
+                time.sleep(0.1)
+        except KeyboardInterrupt:
+            print("[EXIT] GPS interactive loop interrupted.")
