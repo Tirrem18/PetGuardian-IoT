@@ -8,8 +8,10 @@ import paho.mqtt.client as mqtt
 from azure.iot.device import IoTHubDeviceClient, Message
 from azure.cosmos import CosmosClient
 
+# Toggle manual test input if no GPS hardware is available
 INTERACTIVE_MODE = False
 
+# MQTT (HiveMQ Cloud)
 BROKER = "a5c9d1ea0e224376ad6285eb8aa83d55.s1.eu.hivemq.cloud"
 PORT = 8883
 USERNAME = "username"
@@ -17,24 +19,35 @@ PASSWORD = "Password1"
 TOPIC_PUBLISH = "petguardian/gps"
 TOPIC_TRIGGER = "petguardian/trigger/gps"
 
+# Azure IoT Hub
 IOTHUB_CONNECTION_STRING = "HostName=IoTPawTrack.azure-devices.net;DeviceId=collar01;SharedAccessKey=ShzFs2jgI06rAjksNrEst8Byb8x2ljbHrBGYT+raQ1E="
 
+# Cosmos DB
 COSMOS_URI = "https://petguardiandb.documents.azure.com:443/"
 COSMOS_KEY = "gb0rv4z3It79ncyssNJmhHj8mDY8eUBcZPYBfACM9GPWXbf1m2IoIxDgwUQ7dcWfyUJOxUUnSncKACDb44Qynw=="
 DATABASE_NAME = "iotdata"
 CONTAINER_NAME = "telemetry"
 
-cosmos_client = CosmosClient(COSMOS_URI, credential=COSMOS_KEY)
-database = cosmos_client.get_database_client(DATABASE_NAME)
-container = database.get_container_client(CONTAINER_NAME)
-
+# Local logging paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOG_DIR = os.path.join(BASE_DIR, "data", "logs")
 LOG_PATH = os.path.join(LOG_DIR, "gps_log.json")
 os.makedirs(LOG_DIR, exist_ok=True)
 
+# Define home location for simulated GPS generation
 HOME_LOCATION = (54.5742, -1.2345)
 
+# Cosmos client
+cosmos_client = CosmosClient(COSMOS_URI, credential=COSMOS_KEY)
+database = cosmos_client.get_database_client(DATABASE_NAME)
+container = database.get_container_client(CONTAINER_NAME)
+
+# MQTT client (reused for both listener and publisher)
+mqtt_client = mqtt.Client(client_id="gps_sensor")
+mqtt_client.username_pw_set(USERNAME, PASSWORD)
+mqtt_client.tls_set()
+
+# Check for GPS hardware
 try:
     import gpsd
     REAL_SENSOR = True
@@ -42,6 +55,7 @@ except ImportError:
     print("⚠️ GPS module not found. Virtual mode enabled.")
     REAL_SENSOR = False
 
+# Get GPS coordinates from real or simulated source
 def get_gps_location():
     if REAL_SENSOR:
         try:
@@ -61,9 +75,7 @@ def get_gps_location():
                 lon_input = input("Longitude: ").strip()
                 if lon_input == "" or lon_input.lower() == "x":
                     return None
-                lat = float(lat_input)
-                lon = float(lon_input)
-                return {"latitude": lat, "longitude": lon}
+                return {"latitude": float(lat_input), "longitude": float(lon_input)}
             except ValueError:
                 print("❌ Invalid input. Try again.")
     else:
@@ -71,12 +83,14 @@ def get_gps_location():
         lon = HOME_LOCATION[1] + random.uniform(0.03, 0.1)
         return {"latitude": round(lat, 6), "longitude": round(lon, 6)}
 
-def log_gps_data(location):
+# Append to local gps_log.json file
+def log_gps_data(location, timestamp):
     log_entry = {
-        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "timestamp": timestamp,
         "latitude": location["latitude"],
         "longitude": location["longitude"]
     }
+
     logs = []
     if os.path.exists(LOG_PATH) and os.path.getsize(LOG_PATH) > 0:
         try:
@@ -86,26 +100,33 @@ def log_gps_data(location):
                 logs = []
         except Exception:
             logs = []
+
     logs.append(log_entry)
     with open(LOG_PATH, "w") as f:
         json.dump(logs, f, indent=4)
+
     print("📝 Logged GPS.")
 
+# Main function to get GPS and send to all targets
 def run_gps_once():
     location = get_gps_location()
     if not location:
         print("⚠️ No GPS location. Skipping.")
         return
 
-    log_gps_data(location)
+    # Single shared timestamp
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+
+    log_gps_data(location, timestamp)
 
     payload = json.dumps({
         "sensor": "gps",
         "latitude": location["latitude"],
         "longitude": location["longitude"],
-        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+        "timestamp": timestamp
     })
 
+    # Azure Send
     try:
         azure = IoTHubDeviceClient.create_from_connection_string(IOTHUB_CONNECTION_STRING)
         azure.send_message(Message(payload))
@@ -114,52 +135,46 @@ def run_gps_once():
     except Exception as e:
         print(f"❌ Azure send error: {e}")
 
+    # Cosmos Write
     try:
         encoded = base64.b64encode(payload.encode()).decode()
         doc = {
             "id": str(uuid.uuid4()),
             "Body": encoded,
             "deviceId": "collar01",
-            "timestamp": json.loads(payload)["timestamp"]
+            "timestamp": timestamp
         }
         container.create_item(body=doc)
         print("📦 Sent GPS to Cosmos DB.")
     except Exception as e:
         print(f"❌ Cosmos error: {e}")
 
-    max_mqtt_retries = 3
-    for attempt in range(1, max_mqtt_retries + 1):
+    # MQTT Publish
+    max_retries = 3
+    for attempt in range(1, max_retries + 1):
         try:
-            print(f"📡 MQTT attempt {attempt} — connecting...")
-            client = mqtt.Client(client_id="gps_client")
-            client.username_pw_set(USERNAME, PASSWORD)
-            client.tls_set()
-
-            client.connect(BROKER, PORT)
-            client.loop_start()
-            time.sleep(0.5)  # Give connection time to stabilize
-            client.publish(TOPIC_PUBLISH, payload)
-            time.sleep(0.5)  # Let message send
-            client.loop_stop()
-            client.disconnect()
+            mqtt_client.loop_start()
+            mqtt_client.publish(TOPIC_PUBLISH, payload)
+            mqtt_client.loop_stop()
             print("📤 Sent GPS to MQTT broker.")
             break
         except Exception as e:
             print(f"⚠️ MQTT publish failed (attempt {attempt}): {e}")
-            if attempt == max_mqtt_retries:
+            if attempt == max_retries:
                 print("🛑 MQTT failed after maximum retries.")
             else:
                 time.sleep(1)
 
-
+# MQTT on_connect callback
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
-        print("GPS Connected to MQTT broker.")
+        print("✅ GPS Connected to MQTT broker.")
         client.subscribe(TOPIC_TRIGGER)
         print(f"📡 Subscribed to: {TOPIC_TRIGGER}")
     else:
-        print("❌ Connection failed")
+        print("❌ MQTT connection failed.")
 
+# Handle incoming MQTT message
 def on_message(client, userdata, msg):
     print(f"📥 Received message on {msg.topic}")
     try:
@@ -170,15 +185,12 @@ def on_message(client, userdata, msg):
     except Exception as e:
         print(f"⚠️ Error in message: {e}")
 
+# Main loop for MQTT listener
 def start_gps_listener():
     print("📡 Starting GPS MQTT listener...")
 
-    client = mqtt.Client(client_id="gps_sensor")
-    client.username_pw_set(USERNAME, PASSWORD)
-    client.tls_set()
-
-    client.on_connect = on_connect
-    client.on_message = on_message
+    mqtt_client.on_connect = on_connect
+    mqtt_client.on_message = on_message
 
     max_retries = 10
     retry_delay = 1
@@ -186,9 +198,9 @@ def start_gps_listener():
     for attempt in range(1, max_retries + 1):
         try:
             print(f"🔄 GPS MQTT connect attempt {attempt}...")
-            client.connect(BROKER, PORT, 60)
-            client.loop_forever()
-            break  # If successful, never reaches here
+            mqtt_client.connect(BROKER, PORT, 60)
+            mqtt_client.loop_forever()
+            break
         except Exception as e:
             print(f"❌ GPS attempt {attempt} failed: {e}")
             if attempt < max_retries:
@@ -196,7 +208,7 @@ def start_gps_listener():
             else:
                 print("🛑 Max retries reached. GPS MQTT connection failed.")
 
-
+# Entry point
 if __name__ == "__main__":
     INTERACTIVE_MODE = True
     start_gps_listener()

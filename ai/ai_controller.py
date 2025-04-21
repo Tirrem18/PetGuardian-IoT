@@ -27,9 +27,9 @@ threat_ai = ThreatDetector(
     home_location=(54.5742, -1.2345),
     safe_radius=30,
     threat_cooldown_seconds=20,
-    sound_window=20,
-    min_sounds=2,
-    min_sound_interval=4
+    sound_window=10,
+    min_sounds=3,
+    min_sound_interval=1
 )
 
 # MQTT Callbacks

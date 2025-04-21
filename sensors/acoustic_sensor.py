@@ -1,11 +1,13 @@
 import time
 import json
 import os
+import random
 import paho.mqtt.client as mqtt
 from azure.iot.device import IoTHubDeviceClient, Message
-import random
 
+# Set to True for manual keypress testing mode
 INTERACTIVE_MODE = False
+
 # MQTT (HiveMQ Cloud)
 BROKER = "a5c9d1ea0e224376ad6285eb8aa83d55.s1.eu.hivemq.cloud"
 PORT = 8883
@@ -16,7 +18,7 @@ TOPIC = "petguardian/iot"
 # Azure IoT Hub
 AZURE_CONNECTION_STRING = "HostName=IoTPawTrack.azure-devices.net;DeviceId=collar01;SharedAccessKey=ShzFs2jgI06rAjksNrEst8Byb8x2ljbHrBGYT+raQ1E="
 
-# GPIO or keyboard fallback
+# GPIO sensor or simulated input
 try:
     import RPi.GPIO as GPIO
     REAL_SENSOR = True
@@ -28,9 +30,10 @@ except ImportError:
 SOUND_SENSOR_PIN = 17
 mqtt_client = None
 
-def log_event(event):
+# Log the sound event locally to a JSON file
+def log_event(event, timestamp):
     log_entry = {
-        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "timestamp": timestamp,
         "event": event
     }
 
@@ -50,17 +53,19 @@ def log_event(event):
             logs = []
 
     logs.append(log_entry)
+
     with open(log_path, "w") as f:
         json.dump(logs, f, indent=4)
 
     print(f"📝 Logged: {log_entry}")
 
-def send_to_azure(event):
+# Send event to Azure IoT Hub
+def send_to_azure(event, timestamp):
     max_retries = 3
     payload = json.dumps({
         "sensor": "acoustic",
         "event": event,
-        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+        "timestamp": timestamp
     })
 
     for attempt in range(1, max_retries + 1):
@@ -77,12 +82,13 @@ def send_to_azure(event):
             else:
                 print("🛑 Azure send failed after max retries.")
 
-def send_to_broker(event):
+# Send event to MQTT broker
+def send_to_broker(event, timestamp):
     max_retries = 3
     payload = json.dumps({
         "sensor": "acoustic",
         "event": event,
-        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+        "timestamp": timestamp
     })
 
     for attempt in range(1, max_retries + 1):
@@ -97,12 +103,14 @@ def send_to_broker(event):
             else:
                 print("🛑 MQTT failed after max retries.")
 
-
+# Unified handler for loud sound events
 def handle_sound_event():
-    log_event("loud_noise")
-    send_to_broker("loud_noise")
-    send_to_azure("loud_noise")
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    log_event("loud_noise", timestamp)
+    send_to_broker("loud_noise", timestamp)
+    send_to_azure("loud_noise", timestamp)
 
+# Listen for sound events based on mode (real, manual, or virtual)
 def start_acoustic_sensor():
     if REAL_SENSOR:
         GPIO.setmode(GPIO.BCM)
@@ -119,7 +127,7 @@ def start_acoustic_sensor():
             GPIO.cleanup()
 
     elif INTERACTIVE_MODE:
-        print("🎧 Manual test mode active — press 'S' to simulate sound, 'X' to exit.")
+        print("🎧 Manual test mode — press 'S' to simulate sound, 'X' to exit.")
         try:
             while True:
                 event = keyboard.read_event()
@@ -136,7 +144,7 @@ def start_acoustic_sensor():
             print("🛑 Manual test interrupted.")
 
     else:
-        print("🧪 Virtual acoustic sensor running — simulating sound spikes...")
+        print("🧪 Virtual mode — auto-simulating sound spikes...")
         try:
             while True:
                 print("🔁 Simulating 3 sound spikes...")
@@ -151,6 +159,7 @@ def start_acoustic_sensor():
         except KeyboardInterrupt:
             print("🛑 Auto-simulation interrupted.")
 
+# Connect to MQTT broker with retries
 def start_acoustic_listener():
     global mqtt_client
     print("🔊 Starting Acoustic MQTT publisher...")
@@ -176,6 +185,7 @@ def start_acoustic_listener():
             else:
                 print("🛑 Max retries reached. Acoustic MQTT connection failed.")
 
+# Entry point
 if __name__ == "__main__":
     INTERACTIVE_MODE = True
     start_acoustic_listener()
