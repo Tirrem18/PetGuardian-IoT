@@ -8,7 +8,7 @@ def safe_start(name, func):
         print(f" Starting {name} listener thread...")
         func()
     except Exception as e:
-        print(f"❌ {name} thread crashed: {e}")
+        print(f" {name} thread crashed: {e}")
 
 def main():
     gps_thread     = threading.Thread(target=lambda: safe_start("GPS", gps_sensor.start_gps_listener))
