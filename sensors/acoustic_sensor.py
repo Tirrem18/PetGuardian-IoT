@@ -118,20 +118,19 @@ def start_acoustic_sensor():
             print("[EXIT] Real sensor listening stopped.")
 
     elif INTERACTIVE_MODE:
-        print("[MODE] Interactive keyboard mode: Press 'S' to trigger event, 'X' to exit.")
+        print("[MODE] Interactive keyboard mode: Type 'S' to trigger event, 'X' to exit.")
         try:
             while True:
-                event = keyboard.read_event()
-                if event.event_type == keyboard.KEY_DOWN:
-                    if event.name.lower() == 's':
-                        print("[INPUT] Manually triggered sound event.")
-                        handle_sound_event()
-                    elif event.name.lower() == 'x':
-                        print("[EXIT] Exiting interactive mode.")
-                        break
-                time.sleep(0.1)
+                user_input = input(">>> ").strip().lower()
+                if user_input == 's':
+                    print("[INPUT] Manually triggered sound event.")
+                    handle_sound_event()
+                elif user_input == 'x':
+                    print("[EXIT] Exiting interactive mode.")
+                    break
         except KeyboardInterrupt:
             print("[EXIT] Interactive mode stopped.")
+
 
     else:
         print("[MODE] Virtual simulation mode. Auto-generating sound events.")
@@ -145,53 +144,6 @@ def start_acoustic_sensor():
                     handle_sound_event()
                 cooldown = random.uniform(10, 15)
                 time.sleep(cooldown)
-        except KeyboardInterrupt:
-            print("[EXIT] Simulation stopped.")
-
-    if INTERACTIVE_MODE:
-        if REAL_SENSOR:
-            print("[MODE] Interactive mode: Press ENTER to simulate sound event.")
-            while True:
-                input("[INPUT] Press ENTER to simulate:")
-                handle_sound_event()
-        else:
-            print("[MODE] Interactive keyboard mode: Press 'S' to simulate sound, 'X' to exit.")
-            while True:
-                event = keyboard.read_event()
-                if event.event_type == keyboard.KEY_DOWN:
-                    if event.name.lower() == 's':
-                        print("[INPUT] Keyboard-triggered event.")
-                        handle_sound_event()
-                    elif event.name.lower() == 'x':
-                        print("[EXIT] Exiting interactive mode.")
-                        break
-                time.sleep(0.1)
-
-    elif REAL_SENSOR:
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(SOUND_SENSOR_PIN, GPIO.IN)
-        print("[MODE] Listening for real sensor events.")
-
-        try:
-            while True:
-                if GPIO.input(SOUND_SENSOR_PIN) == GPIO.HIGH:
-                    print("[EVENT] Detected sound event.")
-                    handle_sound_event()
-                    time.sleep(0.5)
-        except KeyboardInterrupt:
-            GPIO.cleanup()
-            print("[EXIT] Sensor listening stopped.")
-
-    else:
-        print("[MODE] Virtual mode: Auto-generating sound events.")
-        try:
-            while True:
-                for _ in range(3):
-                    time.sleep(random.uniform(1, 3))
-                    print("[SIMULATION] Generated sound event.")
-                    handle_sound_event()
-                    time.sleep(0.5)
-                time.sleep(random.uniform(10, 15))
         except KeyboardInterrupt:
             print("[EXIT] Simulation stopped.")
 
