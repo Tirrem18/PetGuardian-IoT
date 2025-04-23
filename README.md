@@ -1,3 +1,8 @@
+# 🚀 How to Run the Dashboard
+To launch the PetGuardian Streamlit dashboard, run the following command from the root of the project:
+
+streamlit run dashboard/dashboard.py
+
 # PetGuardian-IoT — Sensor Configuration Guide
 
 The system assumes all sensors (SOUND, CAMERA, GPS) are active by default, simulating a real smart collar setup.
