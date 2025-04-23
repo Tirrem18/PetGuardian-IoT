@@ -3,6 +3,8 @@ import time
 import os
 import json
 from math import radians, cos, sin, sqrt, atan2
+from ai.threat_uploader import send_threat_to_cosmos, send_threat_to_azure
+
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sensors.camera_sensor import trigger_camera
@@ -127,36 +129,44 @@ class ThreatDetector:
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
         gps = self.latest_gps if self.latest_gps else ("unknown", "unknown")
 
+        # 👉 Build reason before clearing timestamps
+        sound_count = len(self.sound_timestamps)
+        reason_text = f"{sound_count} sound event{'s' if sound_count != 1 else ''} within {self.sound_window} seconds"
+
         log_entry = {
             "timestamp": timestamp,
             "gps_latitude": gps[0],
             "gps_longitude": gps[1],
-            "reason": f"{len(self.sound_timestamps)} sound events within {self.sound_window} seconds"
+            "reason": reason_text
         }
 
+        # Save locally
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         log_dir = os.path.join(base_dir, "data", "logs")
         log_path = os.path.join(log_dir, "threat_log.json")
 
         os.makedirs(log_dir, exist_ok=True)
 
-        if os.path.exists(log_path) and os.path.getsize(log_path) > 0:
-            try:
+        try:
+            if os.path.exists(log_path) and os.path.getsize(log_path) > 0:
                 with open(log_path, "r") as file:
                     logs = json.load(file)
                 if not isinstance(logs, list):
                     logs = []
-            except Exception:
+            else:
                 logs = []
-        else:
+        except Exception:
             logs = []
 
         logs.append(log_entry)
-
         with open(log_path, "w") as file:
             json.dump(logs, file, indent=4)
+
+        # ✅ Send with actual values
+        send_threat_to_cosmos(timestamp, gps, reason_text)
+        send_threat_to_azure(timestamp, gps, reason_text)
 
         print("\n⚠️ THREAT DETECTED!")
         print(f"- Time: {timestamp}")
         print(f"- Location: {gps}")
-        print(f"- Logged to: {log_path}")
+        print(f"- Reason: {reason_text}")

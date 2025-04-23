@@ -1,6 +1,8 @@
 import paho.mqtt.client as mqtt
 import json
 import time
+from dashboard.dashboard_data import load_threat_config_from_cosmos
+
 try:
     from ai.threat_detector_ai import ThreatDetector
 except ModuleNotFoundError:
@@ -23,14 +25,20 @@ TOPICS = [
 ]
 
 # Initialize the AI
-threat_ai = ThreatDetector(
-    home_location=(54.5742, -1.2345),
-    safe_radius=30,
-    threat_cooldown_seconds=30,
-    sound_window=10,
-    min_sounds=3,
-    min_sound_interval=1
-)
+cfg = load_threat_config_from_cosmos()
+
+if cfg:
+    threat_ai = ThreatDetector(
+        home_location=(cfg["home_lat"], cfg["home_lon"]),
+        safe_radius=cfg["safe_radius"],
+        threat_cooldown_seconds=cfg["cooldown"],
+        sound_window=cfg["sound_window"],
+        min_sounds=cfg["min_sounds"],
+        min_sound_interval=cfg["min_interval"]
+    )
+else:
+    raise RuntimeError("Failed to load threat detection config.")
+
 
 # MQTT Callbacks
 def on_connect(client, userdata, flags, rc):

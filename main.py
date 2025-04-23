@@ -21,7 +21,7 @@ def main():
     cam_thread.start()
     time.sleep(2)
     ai_thread.start()
-    time.sleep(7)
+    time.sleep(3)
     acoustic_thread.start()
 
     gps_thread.join()
