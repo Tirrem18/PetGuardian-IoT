@@ -9,6 +9,8 @@ from azure.iot.device import IoTHubDeviceClient, Message
 from azure.cosmos import CosmosClient
 import logging
 logging.getLogger("azure").setLevel(logging.WARNING)
+logging.getLogger("azure.iot").setLevel(logging.ERROR)
+
 
 
 # Environment-based mode selection

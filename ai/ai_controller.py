@@ -1,6 +1,7 @@
 import paho.mqtt.client as mqtt
 import json
 import time
+import threading
 from dashboard.dashboard_data import load_threat_config_from_cosmos
 
 try:
@@ -11,6 +12,7 @@ except ModuleNotFoundError:
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from ai.threat_detector_ai import ThreatDetector
 
+from sensors import gps_sensor, camera_sensor, acoustic_sensor
 
 # HiveMQ Cloud Configuration
 BROKER = "a5c9d1ea0e224376ad6285eb8aa83d55.s1.eu.hivemq.cloud"
@@ -28,7 +30,6 @@ TOPICS = [
 cfg = load_threat_config_from_cosmos()
 print("[AI CONFIG LOADED]", json.dumps(cfg, indent=2))
 
-
 if cfg:
     threat_ai = ThreatDetector(
         home_location=(cfg["home_lat"], cfg["home_lon"]),
@@ -41,8 +42,6 @@ if cfg:
     )
 else:
     raise RuntimeError("Failed to load threat detection config.")
-
-
 
 # MQTT Callbacks
 def on_connect(client, userdata, flags, rc):
@@ -66,40 +65,12 @@ def on_message(client, userdata, msg):
             print("🛰️ Waiting for GPS fix to confirm threat...")
             publish_with_retry(client, "petguardian/trigger/gps", { "command": "get_gps" })
 
-
         elif result == "threat_triggered":
             print("📸 Threat confirmed — triggering camera!")
             publish_with_retry(client, "petguardian/trigger/camera", { "command": "get_camera" })
 
-
     except Exception as e:
         print(f"⚠️ Error processing message: {e}")
-
-# Listener function
-def start_ai_listener():
-    print("🧠 Starting AI MQTT listener...")
-    client = mqtt.Client(client_id="ai_controller")
-    client.username_pw_set(USERNAME, PASSWORD)
-    client.tls_set()
-
-    client.on_connect = on_connect
-    client.on_message = on_message
-
-    max_retries = 10
-    retry_delay = 1
-
-    for attempt in range(1, max_retries + 1):
-        try:
-            print(f"🔄 AI MQTT connect attempt {attempt}...")
-            client.connect(BROKER, PORT, 60)
-            client.loop_forever()
-            break
-        except Exception as e:
-            print(f"❌ Attempt {attempt} failed: {e}")
-            if attempt < max_retries:
-                time.sleep(retry_delay)
-            else:
-                print("🛑 Max retries reached. MQTT connection failed.")
 
 def publish_with_retry(client, topic, payload_dict, max_retries=3):
     payload = json.dumps(payload_dict)
@@ -119,7 +90,61 @@ def publish_with_retry(client, topic, payload_dict, max_retries=3):
             else:
                 print(f"🛑 Failed to publish to {topic} after {max_retries} attempts.")
 
+def safe_start(name, func):
+    try:
+        print(f" [AI] Starting {name} listener thread...")
+        func()
+    except Exception as e:
+        print(f" [AI] {name} thread crashed: {e}")
 
-# Entry point
+def start_ai_listener():
+    print("🧠 Starting AI MQTT listener...")
+    client = mqtt.Client(client_id="ai_controller")
+    client.username_pw_set(USERNAME, PASSWORD)
+    client.tls_set()
+
+    client.on_connect = on_connect
+    client.on_message = on_message
+
+    if threat_ai.threat_enabled:
+        gps_thread = threading.Thread(target=lambda: safe_start("GPS", gps_sensor.start_gps_listener))
+        cam_thread = threading.Thread(target=lambda: safe_start("Camera", camera_sensor.start_camera_listener))
+
+        def run_acoustic_full():
+            acoustic_sensor.start_acoustic_listener()
+            acoustic_sensor.start_acoustic_sensor()
+
+        acoustic_thread = threading.Thread(target=lambda: safe_start("Acoustic", run_acoustic_full))
+
+        gps_thread.start()
+        time.sleep(1)
+        cam_thread.start()
+        time.sleep(1)
+        acoustic_thread.start()
+
+        print(" [AI] All sensor threads running (Threat Detection enabled).")
+    else:
+        print(" 🛑 Threat Detection is OFF — sensor threads will not start.")
+
+    # Placeholder for future SafeMode logic
+    if cfg.get("night_enabled", False):
+        print(" 🌙 SafeMode (night mode) is enabled — awaiting future LightAI integration.")
+
+    max_retries = 10
+    retry_delay = 1
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"🔄 AI MQTT connect attempt {attempt}...")
+            client.connect(BROKER, PORT, 60)
+            client.loop_forever()
+            break
+        except Exception as e:
+            print(f"❌ Attempt {attempt} failed: {e}")
+            if attempt < max_retries:
+                time.sleep(retry_delay)
+            else:
+                print("🛑 Max retries reached. MQTT connection failed.")
+
 if __name__ == "__main__":
     start_ai_listener()
