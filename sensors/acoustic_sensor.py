@@ -134,7 +134,7 @@ def start_acoustic_sensor():
 
     else:
         print("[MODE] Virtual simulation mode. Auto-generating sound events.")
-        time.sleep(4)
+        time.sleep(1)
         try:
             while True:
                 for _ in range(3):
@@ -142,7 +142,7 @@ def start_acoustic_sensor():
                     time.sleep(delay)
                     print("[SIMULATION] Generated simulated sound event.")
                     handle_sound_event()
-                cooldown = random.uniform(10, 15)
+                cooldown = (150)
                 time.sleep(cooldown)
         except KeyboardInterrupt:
             print("[EXIT] Simulation stopped.")
