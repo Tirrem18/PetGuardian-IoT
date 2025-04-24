@@ -14,15 +14,16 @@ DEFAULTS = {
     "home_lat": 54.5742,
     "home_lon": -1.2345,
     "safe_radius": 30,
-    "threat_enabled": False,
-    "night_enabled": False,
+    "threat_enabled": True,
+    "night_enabled": True,
     "cooldown": 30,
     "sound_window": 10,
     "min_sounds": 3,
-    "min_interval": 1.0,
+    "min_interval": 1,
     "lux_threshold": 30,
-    "imu_threshold": 0.5,
+    "imu_threshold": 1,
 }
+
 
 # Connect to Cosmos containers
 def get_cosmos_container(name=CONTAINER_NAME):
@@ -34,7 +35,10 @@ def get_cosmos_container(name=CONTAINER_NAME):
 def load_config():
     try:
         container = get_cosmos_container(name=CONFIG_CONTAINER)
+        print("[CONFIG LOAD] Trying to fetch dashboard_settings from Cosmos...")
         config_doc = container.read_item(item="dashboard_settings", partition_key="dashboard")
+        print("[CONFIG LOAD] Loaded config from Cosmos:")
+        print(json.dumps(config_doc["settings"], indent=2))
         return config_doc.get("settings", DEFAULTS.copy())
     except Exception as e:
         print(f"[CONFIG LOAD] Failed to load config from Cosmos — using defaults. Reason: {e}")
@@ -78,25 +82,26 @@ def fetch_all_logs():
 
             decoded = json.loads(base64.b64decode(encoded).decode("utf-8"))
             sensor = decoded.get("sensor", "unknown")
-            timestamp = decoded.get("timestamp", item.get("timestamp", "N/A"))
-
-            if sensor == "acoustic":
-                logs["acoustic"].append(f"{timestamp} | Event: {decoded.get('event')}")
-            elif sensor == "gps":
-                lat = decoded.get("latitude", "N/A")
-                lon = decoded.get("longitude", "N/A")
-                logs["gps"].append(f"{timestamp} | GPS: ({lat}, {lon})")
-            elif sensor in ["light", "led_light_sensor", "simulated_led_light"]:
-                logs["light"].append(f"{timestamp} | Lux: {decoded.get('lux')}")
-            elif sensor == "imu":
-                logs["imu"].append(f"{timestamp} | IMU: {decoded}")
-            elif sensor == "camera":
-                logs["camera"].append(f"{timestamp} | Image captured.")
-            elif sensor == "threat":
-                logs["threat"].append(f"{timestamp} | Threat event.")
-            else:
-                logs["unknown"].append(f"{timestamp} | Unknown sensor: {sensor}")
+            decoded["timestamp"] = decoded.get("timestamp", item.get("timestamp", "N/A"))
+            logs.get(sensor, logs["unknown"]).append(decoded)
         except Exception:
             continue
 
     return logs
+
+
+def save_dashboard_settings(settings_dict):
+    try:
+        container = get_cosmos_container(name=CONFIG_CONTAINER)
+        doc = {
+            "id": "dashboard_settings",
+            "partitionKey": "dashboard",
+            "settings": settings_dict
+        }
+        container.upsert_item(doc)
+        print("[CONFIG SAVE] Settings updated in Cosmos.")
+        return True
+    except Exception as e:
+        print(f"[CONFIG SAVE] Failed to save settings to Cosmos. Reason: {e}")
+        return False
+

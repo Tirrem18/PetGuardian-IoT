@@ -26,6 +26,8 @@ TOPICS = [
 
 # Initialize the AI
 cfg = load_threat_config_from_cosmos()
+print("[AI CONFIG LOADED]", json.dumps(cfg, indent=2))
+
 
 if cfg:
     threat_ai = ThreatDetector(
