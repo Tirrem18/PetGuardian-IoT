@@ -9,7 +9,7 @@ DATABASE_NAME = "iotdata"
 CONTAINER_NAME = "telemetry"
 
 # Sensors to delete
-SENSOR_TYPES_TO_DELETE = {"acoustic", "gps", "camera", "threat"}
+SENSOR_TYPES_TO_DELETE = {"acoustic", "gps", "lux", "imu", "camera", "threat"}
 
 def cleanup_cosmos():
     print("[🔗] Connecting to Cosmos DB...")

@@ -103,8 +103,12 @@ for key, val in initial_settings.items():
             st.session_state[key] = float(st.session_state[key])
         elif key in ["safe_radius", "cooldown", "sound_window", "min_sounds", "min_interval", "lux_threshold", "imu_threshold"]:
             st.session_state[key] = int(float(st.session_state[key]))
-        elif key in ["threat_enabled", "night_enabled"]:
+        elif key in ["threat_enabled", "safemode_enabled"]:
             st.session_state[key] = bool(st.session_state[key])
+
+# 🔧 Explicit init to prevent KeyError
+if "safemode_enabled" not in st.session_state:
+    st.session_state.safemode_enabled = initial_settings.get("safemode_enabled", True)
 
 # Dashboard layout split into two columns
 left_col, right_col = st.columns([2.5, 1.5])
@@ -165,8 +169,8 @@ with right_col:
         st.session_state.min_sounds = st.slider("Min Sounds to Trigger", 1, 10, st.session_state.min_sounds)
         st.session_state.min_interval = st.slider("Min Interval Between Sounds (s)", 1, 10, st.session_state.min_interval)
 
-    st.markdown("### Enable Nighttime Safety Mode")
-    st.session_state.night_enabled = st.toggle("Night Mode", value=st.session_state.night_enabled, key="night_toggle")
+    st.markdown("### Enable Nighttime Safet Mode")
+    st.session_state.safemode_enabled = st.toggle("Safe Mode", value=st.session_state.safemode_enabled, key="safemode_toggle")
 
     with st.expander("Nighttime Settings"):
         st.session_state.lux_threshold = st.slider("Lux Threshold (Darkness)", 1, 100, st.session_state.lux_threshold)
@@ -189,7 +193,7 @@ with st.container():
                 "lux_threshold": int(st.session_state.lux_threshold),
                 "imu_threshold": int(st.session_state.imu_threshold),
                 "threat_enabled": bool(st.session_state.threat_enabled),
-                "night_enabled": bool(st.session_state.night_enabled)
+                "safemode_enabled": bool(st.session_state.safemode_enabled)
             }
             success = save_dashboard_settings(updated_settings)
             if success:

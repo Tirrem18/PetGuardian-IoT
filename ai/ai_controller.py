@@ -126,9 +126,29 @@ def start_ai_listener():
     else:
         print(" 🛑 Threat Detection is OFF — sensor threads will not start.")
 
-    # Placeholder for future SafeMode logic
-    if cfg.get("night_enabled", False):
-        print(" 🌙 SafeMode (night mode) is enabled — awaiting future LightAI integration.")
+    if cfg.get("safemode_enabled", False):
+        print("🌙 SafeMode is ON — Starting light fusion system...")
+
+        # Import here to avoid circular import errors at the top
+        from sensors import lux_sensor, imu_sensor, led_bulb, safemode_fusion
+
+        lux_thread = threading.Thread(target=lambda: safe_start("Lux", lux_sensor.start_lux_listener))
+        imu_thread = threading.Thread(target=lambda: safe_start("IMU", imu_sensor.start_imu_listener))
+        led_thread = threading.Thread(target=lambda: safe_start("LED Bulb", led_bulb.start_led_listener))
+        fusion_thread = threading.Thread(target=lambda: safe_start("SafeMode Fusion", safemode_fusion.start_fusion_monitor))
+
+        lux_thread.start()
+        time.sleep(1)
+        imu_thread.start()
+        time.sleep(1)
+        fusion_thread.start()
+        time.sleep(1)
+        led_thread.start()
+
+        print(" [AI] All SafeMode sensor threads running (Light Fusion system active).")
+
+    else:
+        print("🌙 SafeMode is OFF — light sensor, IMU, and LED threads skipped.")
 
     max_retries = 10
     retry_delay = 1

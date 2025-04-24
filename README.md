@@ -84,3 +84,7 @@ SOUND=true CAMERA=true GPS=true python main.py
 ---OR
 
 SOUND=true SOUND_MODE=interactive python3 acoustic_sensor.py on PI
+
+
+LUX=false LUX_MODE=simulated python lux_sensor.py
+ add about this

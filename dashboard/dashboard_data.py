@@ -15,7 +15,7 @@ DEFAULTS = {
     "home_lon": -1.2345,
     "safe_radius": 30,
     "threat_enabled": True,
-    "night_enabled": True,
+    "safemode_enabled": True,
     "cooldown": 30,
     "sound_window": 10,
     "min_sounds": 3,
@@ -52,15 +52,17 @@ def load_dashboard_settings():
 def load_threat_config_from_cosmos():
     settings = load_config()
     return {
-        "home_lat": settings["home_lat"],
-        "home_lon": settings["home_lon"],
-        "safe_radius": settings["safe_radius"],
-        "cooldown": settings["cooldown"],
-        "sound_window": settings["sound_window"],
-        "min_sounds": settings["min_sounds"],
-        "min_interval": settings["min_interval"],
-        "threat_enabled": settings.get("threat_enabled", True)
-    }
+    "home_lat": settings["home_lat"],
+    "home_lon": settings["home_lon"],
+    "safe_radius": settings["safe_radius"],
+    "cooldown": settings["cooldown"],
+    "sound_window": settings["sound_window"],
+    "min_sounds": settings["min_sounds"],
+    "min_interval": settings["min_interval"],
+    "threat_enabled": settings.get("threat_enabled", True),
+    "safemode_enabled": settings.get("safemode_enabled", True)
+}
+
 
 
 # Fetch logs
