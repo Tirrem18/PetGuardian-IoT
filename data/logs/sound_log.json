@@ -58,5 +58,17 @@
     {
         "timestamp": "2025-04-24 03:32:25",
         "event": "loud_noise"
+    },
+    {
+        "timestamp": "2025-04-24 03:42:46",
+        "event": "loud_noise"
+    },
+    {
+        "timestamp": "2025-04-24 03:42:48",
+        "event": "loud_noise"
+    },
+    {
+        "timestamp": "2025-04-24 03:42:50",
+        "event": "loud_noise"
     }
 ]
