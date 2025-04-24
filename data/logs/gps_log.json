@@ -23,5 +23,15 @@
         "timestamp": "2025-04-24 03:42:50",
         "latitude": 54.569654,
         "longitude": -1.235719
+    },
+    {
+        "timestamp": "2025-04-24 03:53:57",
+        "latitude": 54.574323,
+        "longitude": -1.235047
+    },
+    {
+        "timestamp": "2025-04-24 03:55:02",
+        "latitude": 54.569502,
+        "longitude": -1.237914
     }
 ]

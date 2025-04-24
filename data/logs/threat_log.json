@@ -28,5 +28,17 @@
         "gps_latitude": 54.569654,
         "gps_longitude": -1.235719,
         "reason": "3 sound events within 10 seconds"
+    },
+    {
+        "timestamp": "2025-04-24 03:53:59",
+        "gps_latitude": 54.574323,
+        "gps_longitude": -1.235047,
+        "reason": "2 sound events within 19 seconds"
+    },
+    {
+        "timestamp": "2025-04-24 03:55:04",
+        "gps_latitude": 54.569502,
+        "gps_longitude": -1.237914,
+        "reason": "2 sound events within 19 seconds"
     }
 ]

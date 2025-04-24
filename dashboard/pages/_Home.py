@@ -7,21 +7,21 @@ import json
 from datetime import datetime, timedelta
 from azure.cosmos import CosmosClient
 
-# Allow importing dashboard_data
+# Import shared dashboard data settings
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from dashboard_data import load_dashboard_settings, DEFAULTS, save_dashboard_settings
 
-# Cosmos DB Config
+# Cosmos DB configuration
 COSMOS_URI = "https://petguardiandb.documents.azure.com:443/"
 COSMOS_KEY = "gb0rv4z3It79ncyssNJmhHj8mDY8eUBcZPYBfACM9GPWXbf1m2IoIxDgwUQ7dcWfyUJOxUUnSncKACDb44Qynw=="
 DATABASE_NAME = "iotdata"
 CONTAINER_NAME = "telemetry"
 
+# Function to fetch threats with valid GPS coordinates
 def get_all_valid_threats():
     try:
         client = CosmosClient(COSMOS_URI, credential=COSMOS_KEY)
-        db = client.get_database_client(DATABASE_NAME)
-        container = db.get_container_client(CONTAINER_NAME)
+        container = client.get_database_client(DATABASE_NAME).get_container_client(CONTAINER_NAME)
 
         valid_threats = []
         for item in container.query_items("SELECT * FROM c", enable_cross_partition_query=True):
@@ -35,6 +35,7 @@ def get_all_valid_threats():
                 continue
             if decoded.get("sensor") != "threat":
                 continue
+
             lat = decoded.get("gps_latitude")
             lon = decoded.get("gps_longitude")
             timestamp = decoded.get("timestamp", "Unknown")
@@ -50,11 +51,12 @@ def get_all_valid_threats():
         print(f"[COSMOS ERROR] {e}")
         return []
 
+# Function to find closest camera image to a threat timestamp
 def get_camera_by_timestamp(target_ts_str):
     try:
         target_ts = datetime.strptime(target_ts_str, "%Y-%m-%d %H:%M:%S")
     except ValueError:
-        print(f"[Timestamp Parse Error] Invalid target timestamp format: {target_ts_str}")
+        print(f"[Timestamp Parse Error] Invalid timestamp: {target_ts_str}")
         return None
 
     client = CosmosClient(COSMOS_URI, credential=COSMOS_KEY)
@@ -70,7 +72,6 @@ def get_camera_by_timestamp(target_ts_str):
                 continue
 
             decoded = json.loads(base64.b64decode(body).decode("utf-8"))
-
             if decoded.get("sensor") != "camera":
                 continue
 
@@ -83,15 +84,16 @@ def get_camera_by_timestamp(target_ts_str):
                     closest_img = decoded.get("image_base64")
             except ValueError:
                 continue
-
     except Exception as e:
         print(f"[Camera Lookup Error] {e}")
 
     return closest_img
 
+# Streamlit page setup
 st.set_page_config(page_title="PetGuardian Dashboard", layout="wide")
-st.title("🐾 PetGuardian IoT Dashboard")
+st.title("PetGuardian IoT Dashboard")
 
+# Load previously saved settings
 initial_settings = load_dashboard_settings()
 for key, val in initial_settings.items():
     if key not in st.session_state:
@@ -104,13 +106,15 @@ for key, val in initial_settings.items():
         elif key in ["threat_enabled", "night_enabled"]:
             st.session_state[key] = bool(st.session_state[key])
 
+# Dashboard layout split into two columns
 left_col, right_col = st.columns([2.5, 1.5])
 
+# Left column: map and home location settings
 with left_col:
-    st.markdown("### 🏠 Home Location and Safe Zone")
+    st.markdown("### Home Location and Safe Zone")
     map_container = st.container()
 
-    st.markdown("### ⚙️ Home Settings")
+    st.markdown("### Home Settings")
     with st.expander("Location Settings"):
         st.session_state.home_lat = st.number_input("Latitude", value=st.session_state.home_lat, format="%.6f", step=0.0001)
         st.session_state.home_lon = st.number_input("Longitude", value=st.session_state.home_lon, format="%.6f", step=0.0001)
@@ -131,28 +135,28 @@ with left_col:
                 fill=True,
                 fill_color='red',
                 fill_opacity=1.0,
-                tooltip=f"⚠️ {threat['timestamp']} – {threat['reason']}"
+                tooltip=f"{threat['timestamp']} – {threat['reason']}"
             ).add_to(m)
 
         st_folium(m, width=1500, height=450)
 
+# Right column: image and feature toggles
 with right_col:
-    st.markdown("### 📷 Captured Threat Image")
+    st.markdown("### Captured Threat Image")
 
     if all_threats:
-        selected_ts = st.radio("Select Threat Timestamp", [t["timestamp"] for t in all_threats[::-1]], index=0)
+        selected_ts = st.selectbox("Select a threat timestamp", [t["timestamp"] for t in all_threats[::-1]])
         selected_threat = next((t for t in all_threats if t["timestamp"] == selected_ts), None)
 
         if selected_threat:
             st.markdown(f"**Threat Time:** {selected_threat['timestamp']}<br>**Reason:** {selected_threat['reason']}", unsafe_allow_html=True)
             image_base64 = get_camera_by_timestamp(selected_threat["timestamp"])
             if image_base64:
-                st.image(base64.b64decode(image_base64), caption="Captured Image", width=350)
+                st.image(base64.b64decode(image_base64), caption="Captured Image", width=420)
             else:
                 st.warning("No image found for this threat.")
 
-    st.markdown("---")
-    st.markdown("### 🧐 Enable Threat Detector")
+    st.markdown("### Enable Threat Detector")
     st.session_state.threat_enabled = st.toggle("Threat Detection", value=st.session_state.threat_enabled, key="threat_toggle")
 
     with st.expander("Threat Settings"):
@@ -161,18 +165,19 @@ with right_col:
         st.session_state.min_sounds = st.slider("Min Sounds to Trigger", 1, 10, st.session_state.min_sounds)
         st.session_state.min_interval = st.slider("Min Interval Between Sounds (s)", 1, 10, st.session_state.min_interval)
 
-    st.markdown("### 🌙 Enable Nighttime Safety Mode")
+    st.markdown("### Enable Nighttime Safety Mode")
     st.session_state.night_enabled = st.toggle("Night Mode", value=st.session_state.night_enabled, key="night_toggle")
 
     with st.expander("Nighttime Settings"):
         st.session_state.lux_threshold = st.slider("Lux Threshold (Darkness)", 1, 100, st.session_state.lux_threshold)
         st.session_state.imu_threshold = st.slider("IMU Movement Threshold", 1, 10, st.session_state.imu_threshold)
 
+# Save and reset controls
 with st.container():
     st.markdown("---")
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("💎 Save Settings to Cosmos"):
+        if st.button("Save Settings to Cosmos"):
             updated_settings = {
                 "home_lat": float(st.session_state.home_lat),
                 "home_lon": float(st.session_state.home_lon),
@@ -192,7 +197,7 @@ with st.container():
             else:
                 st.error("Failed to save settings. Check console for errors.")
     with col2:
-        if st.button(" Reset to Defaults"):
+        if st.button("Reset to Defaults"):
             for key, val in DEFAULTS.items():
                 st.session_state[key] = val
             st.rerun()

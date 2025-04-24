@@ -17,11 +17,11 @@ def main():
     acoustic_thread = threading.Thread(target=lambda: safe_start("Acoustic", run_acoustic_full))
 
     gps_thread.start()
-    time.sleep(2)
+    time.sleep(1)
     cam_thread.start()
-    time.sleep(2)
+    time.sleep(1)
     ai_thread.start()
-    time.sleep(3)
+    time.sleep(1)
     acoustic_thread.start()
 
     gps_thread.join()
