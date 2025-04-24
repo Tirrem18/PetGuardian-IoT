@@ -87,8 +87,9 @@ def get_gps_location():
             except ValueError:
                 print("[INPUT ERROR] Please enter valid numbers.")
     else:
-        lat = HOME_LOCATION[0] + random.uniform(0.03, 0.1)
-        lon = HOME_LOCATION[1] + random.uniform(0.03, 0.1)
+        lat = HOME_LOCATION[0] + random.uniform(-0.005, 0.0005)
+        lon = HOME_LOCATION[1] + random.uniform(-0.005, 0.0005)
+
         return {"latitude": round(lat, 6), "longitude": round(lon, 6)}
 
 # Save data to local log file

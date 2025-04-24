@@ -22,8 +22,8 @@ def send_threat_to_cosmos(timestamp, gps, reason):
         "id": str(uuid.uuid4()),
         "sensor": "threat",
         "timestamp": timestamp,
-        "latitude": gps[0],
-        "longitude": gps[1],
+        "gps_latitude": gps[0],
+        "gps_longitude": gps[1],
         "reason": reason,
         "deviceId": "collar01"
     }
@@ -38,8 +38,8 @@ def send_threat_to_azure(timestamp, gps, reason):
     payload = {
         "sensor": "threat",
         "timestamp": timestamp,
-        "latitude": gps[0],
-        "longitude": gps[1],
+        "gps_latitude": gps[0],
+        "gps_longitude": gps[1],
         "reason": reason
     }
 
