@@ -70,3 +70,13 @@ def match_threats_to_images(threats, cameras):
         })
 
     return results
+
+
+def get_most_recent_threat():
+    # Return a hardcoded fake threat for testing
+    return {
+        "latitude": 54.5749,      # Slightly offset from your home lat
+        "longitude": -1.2349,     # Slightly offset from your home lon
+        "timestamp": "2025-04-24 12:34:56"
+    }
+

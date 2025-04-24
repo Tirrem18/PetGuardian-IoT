@@ -1,0 +1,20 @@
+# Ignore virtual environments
+pg-env/
+env/
+venv/
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore Streamlit folders
+.streamlit/
+*.log
+
+# VSCode stuff
+.vscode/
+
+# OS stuff
+.DS_Store
+Thumbs.db

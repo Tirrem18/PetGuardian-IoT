@@ -2,6 +2,8 @@ import streamlit as st
 import folium
 from streamlit_folium import st_folium
 from dashboard_data import load_dashboard_settings, DEFAULTS, save_dashboard_settings
+from dashboard.tools.threat_dummy import get_most_recent_threat
+
 
 # --- Page setup ---
 st.set_page_config(page_title="PetGuardian Dashboard", layout="wide")
@@ -43,12 +45,17 @@ with left_col:
 
     # Now render the map *after* slider so it gets correct radius
     with map_container:
+        # Create base map
         m = folium.Map(location=(st.session_state.home_lat, st.session_state.home_lon), zoom_start=17)
+
+        # Add home marker
         folium.Marker(
             location=(st.session_state.home_lat, st.session_state.home_lon),
             popup="Home",
             icon=folium.Icon(color="green", icon="home")
         ).add_to(m)
+
+        # Add safe zone
         folium.Circle(
             radius=st.session_state.safe_radius,
             location=(st.session_state.home_lat, st.session_state.home_lon),
@@ -57,7 +64,21 @@ with left_col:
             fill=True,
             fill_opacity=0.3
         ).add_to(m)
+
+        # ✅ Add a static red dot (no function call at all)
+        folium.CircleMarker(
+            location=(54.5749, -1.2349),  # Hardcoded test
+            radius=7,
+            color='red',
+            fill=True,
+            fill_color='red',
+            fill_opacity=1.0,
+            tooltip="⚠️ Test Dot"
+        ).add_to(m)
+
+        # Always show the map
         st_folium(m, width=1500, height=450)
+
 
 
 # === RIGHT COLUMN: Features ===
