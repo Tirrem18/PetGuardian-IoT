@@ -36,10 +36,12 @@ if cfg:
         threat_cooldown_seconds=cfg["cooldown"],
         sound_window=cfg["sound_window"],
         min_sounds=cfg["min_sounds"],
-        min_sound_interval=cfg["min_interval"]
+        min_sound_interval=cfg["min_interval"],
+        threat_enabled=cfg.get("threat_enabled", True)
     )
 else:
     raise RuntimeError("Failed to load threat detection config.")
+
 
 
 # MQTT Callbacks

@@ -58,8 +58,10 @@ def load_threat_config_from_cosmos():
         "cooldown": settings["cooldown"],
         "sound_window": settings["sound_window"],
         "min_sounds": settings["min_sounds"],
-        "min_interval": settings["min_interval"]
+        "min_interval": settings["min_interval"],
+        "threat_enabled": settings.get("threat_enabled", True)
     }
+
 
 # Fetch logs
 def fetch_all_logs():

@@ -5,13 +5,13 @@ import json
 from math import radians, cos, sin, sqrt, atan2
 from ai.threat_uploader import send_threat_to_cosmos, send_threat_to_azure
 
-
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sensors.camera_sensor import trigger_camera
 
 class ThreatDetector:
     def __init__(self, home_location=None, safe_radius=30, threat_cooldown_seconds=30,
-                 sound_window=10, min_sounds=3, min_sound_interval=1):
+                 sound_window=10, min_sounds=3, min_sound_interval=1,
+                 threat_enabled=True):
         """
         Initializes the threat detection system.
         """
@@ -21,6 +21,7 @@ class ThreatDetector:
         self.sound_window = sound_window
         self.min_sounds = min_sounds
         self.min_sound_interval = min_sound_interval
+        self.threat_enabled = threat_enabled
 
         self.sound_timestamps = []       # List of timestamps for recent sounds
         self.latest_gps = None           # Most recent GPS reading (lat, lon)
@@ -32,6 +33,10 @@ class ThreatDetector:
         """
         Main handler called by ai_controller.py.
         """
+        if not self.threat_enabled:
+            print("⚠️ Threat detection is OFF — ignoring incoming sensor data.")
+            return False
+
         # Check for GPS timeout
         if self.awaiting_gps_since and time.time() - self.awaiting_gps_since > 15:
             print("⏱️ GPS timeout — no fix received within 15 seconds. Assuming pet is outside zone.")
@@ -42,7 +47,6 @@ class ThreatDetector:
             self.sound_timestamps.clear()
             self.last_trigger_time = time.time()
             return "threat_triggered"
-
 
         sensor_type = payload.get("sensor")
 
