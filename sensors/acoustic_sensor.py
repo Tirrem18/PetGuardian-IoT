@@ -83,7 +83,7 @@ def run_interactive_mode():
 # --- Virtual Auto Simulation Mode ---
 def run_virtual_mode():
     time.sleep(2.5)
-    print("\n[SIMULATION] Generating simulated sound events...\n")
+    print("\n[SIMULATION] Generating 3 simulated sound events...\n")
     time.sleep(1.5)
     try:
         while True:
@@ -91,8 +91,7 @@ def run_virtual_mode():
                 time.sleep(random.uniform(1, 3))
                 print("\n[SIM] Simulated sound spike.")
                 handle_sound_event()
-            print("[SIM] Cooling down for 150 seconds.")
-            time.sleep(150)
+            time.sleep(15)
     except KeyboardInterrupt:
         print("[EXIT] Virtual simulation interrupted.")
 

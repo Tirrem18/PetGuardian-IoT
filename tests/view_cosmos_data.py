@@ -80,6 +80,16 @@ for item in container.query_items(query="SELECT * FROM c", enable_cross_partitio
                 print(f"{timestamp} | Image saved: {file_path}")
             else:
                 print(f"{timestamp} | Camera data found but missing 'image_base64' field.")
+            
+            # Handle threat event data
+        elif body_decoded.get("event") == "threat":
+            score = body_decoded.get("score", "N/A")
+            gps_latitude = body_decoded.get("gps_latitude", "N/A")
+            gps_longitude = body_decoded.get("gps_longitude", "N/A")
+            reason = body_decoded.get("reason", "N/A")
+
+            print(f"{timestamp} | 🚨 Threat Event Detected! Score: {score}, Location: ({gps_latitude}, {gps_longitude}), Reason: {reason}")
+
 
         # Handle unknown sensor types
         else:

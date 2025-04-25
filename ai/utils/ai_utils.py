@@ -136,6 +136,5 @@ class AIUtils:
             with open(path, "w") as f:
                 json.dump(logs, f, indent=4)
 
-            print(f"[LOCAL LOG] ✅ Saved to {file_name}")
         except Exception as e:
             print(f"[LOCAL LOG ERROR] {e}")

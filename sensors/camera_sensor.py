@@ -102,7 +102,7 @@ def handle_camera_event(timestamp=None):
             image_path = None
 
     else:
-        print("[SIMULATION] No real camera. Using fallback image.")
+        print("\n[SIMULATION] No real camera. Using fallback image.")
         fallback_path = os.path.join(TEST_DIR, "no_camera.png")
         if os.path.exists(fallback_path):
             try:

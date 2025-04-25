@@ -53,7 +53,6 @@ class GuardianAI:
             print("[CONFIG] Using default settings (both off)")
 
     def handle_ai_message(self, client, userdata, msg):
-        print("🔥 handle_ai_message() triggered!")
         try:
             payload = json.loads(msg.payload.decode(errors='ignore'))
             topic = msg.topic
