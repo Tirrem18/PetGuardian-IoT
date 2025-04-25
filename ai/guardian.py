@@ -76,12 +76,21 @@ class GuardianAI:
         self.verbose = False
         self.start_mqtt_listener()
 
-        from sensors import imu_sensor, acoustic_sensor
+        from sensors import imu_sensor, acoustic_sensor, gps_sensor, lux_sensor, camera_sensor, led_bulb
 
         if self.enable_imu_thread:
             self.safe_start("IMU Listener", imu_sensor.start_imu_listener)
+            self.safe_start("LUX Listener", lux_sensor.start_lux_listener)
+            self.safe_start("Bulb Listener", led_bulb.start_bulb_listener)
+
         if self.enable_acoustic_thread:
             self.safe_start("Acoustic Listener", acoustic_sensor.start_acoustic_listener)
+            self.safe_start("Camera Listener", camera_sensor.start_camera_listener)
+
+        self.safe_start("GPS Listener", gps_sensor.start_gps_listener)
+        self.safe_start("LUX Listener", lux_sensor.start_lux_listener)
+        self.safe_start("Bulb Listener", led_bulb.start_bulb_listener)
+        self.safe_start("Camera Listener", camera_sensor.start_camera_listener)
 
         print("✅ Guardian AI sensors active.")
         try:

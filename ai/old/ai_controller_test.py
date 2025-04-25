@@ -3,7 +3,7 @@ import json
 import time
 import threading
 from dashboard.dashboard_data import load_threat_config_from_cosmos
-from sensors.old import acoustic_sensor_test, imu_sensor_test
+from sensors.old import acoustic_sensor_test, gps_sensor_test, imu_sensor_test, lux_sensor_test
 
 try:
     from ai.old.threat_detector_test import ThreatDetector
@@ -13,7 +13,7 @@ except ModuleNotFoundError:
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from ai.old.threat_detector_test import ThreatDetector
 
-from sensors import gps_sensor, camera_sensor
+from sensors.old import camera_sensor_test
 
 # HiveMQ Cloud Configuration
 BROKER = "a5c9d1ea0e224376ad6285eb8aa83d55.s1.eu.hivemq.cloud"
@@ -118,11 +118,11 @@ def start_ai_listener():
         print("🌙 SafeMode is ON — Starting light fusion system...")
 
         # Import here to avoid circular import errors at the top
-        from sensors import lux_sensor, led_bulb
+        from sensors import led_bulb
         from ai.old import safemode_ai_test as safemode_fusion
 
 
-        lux_thread = threading.Thread(target=lambda: safe_start("Lux", lux_sensor.start_lux_listener))
+        lux_thread = threading.Thread(target=lambda: safe_start("Lux", lux_sensor_test.start_lux_listener))
         imu_thread = threading.Thread(target=lambda: safe_start("IMU", imu_sensor_test.start_imu_listener))
         led_thread = threading.Thread(target=lambda: safe_start("LED Bulb", led_bulb.start_led_listener))
         fusion_thread = threading.Thread(target=lambda: safe_start("SafeMode Fusion", safemode_fusion.start_fusion_monitor))

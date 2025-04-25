@@ -6,7 +6,7 @@ from math import radians, cos, sin, sqrt, atan2
 from ai.old.threat_uploader_test import send_threat_to_cosmos, send_threat_to_azure
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from sensors.camera_sensor import trigger_camera
+from sensors.old.camera_sensor_test import trigger_camera
 
 class ThreatDetector:
     def __init__(self, home_location=None, safe_radius=30, threat_cooldown_seconds=30,

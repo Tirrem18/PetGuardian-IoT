@@ -47,8 +47,9 @@ class SensorUtils:
         self.container = db.get_container_client(self.container_name)
 
         # Local Logging
-        base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        self.log_dir = os.path.join(base, "data", "logs")
+        root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        self.log_dir = os.path.join(root_dir, "data", "logs")
+
         os.makedirs(self.log_dir, exist_ok=True)
 
     def get_timestamp(self):
