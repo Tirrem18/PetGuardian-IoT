@@ -101,6 +101,7 @@ def run_interactive_mode():
 # --- Virtual simulated IMU events ---
 def run_virtual_mode():
     print("[SIMULATION] Auto-generating IMU events...\n")
+    time.sleep(3)
     try:
         while True:
             for _ in range(3):

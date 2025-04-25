@@ -618,5 +618,75 @@
         "sensor": "acoustic",
         "event": "loud_noise",
         "timestamp": "2025-04-25 04:05:36"
+    },
+    {
+        "sensor": "acoustic",
+        "event": "loud_noise",
+        "timestamp": "2025-04-25 04:10:11"
+    },
+    {
+        "sensor": "acoustic",
+        "event": "loud_noise",
+        "timestamp": "2025-04-25 04:10:14"
+    },
+    {
+        "sensor": "acoustic",
+        "event": "loud_noise",
+        "timestamp": "2025-04-25 04:10:16"
+    },
+    {
+        "sensor": "acoustic",
+        "event": "loud_noise",
+        "timestamp": "2025-04-25 04:11:22"
+    },
+    {
+        "sensor": "acoustic",
+        "event": "loud_noise",
+        "timestamp": "2025-04-25 04:11:26"
+    },
+    {
+        "sensor": "acoustic",
+        "event": "loud_noise",
+        "timestamp": "2025-04-25 04:11:29"
+    },
+    {
+        "sensor": "acoustic",
+        "event": "loud_noise",
+        "timestamp": "2025-04-25 04:12:09"
+    },
+    {
+        "sensor": "acoustic",
+        "event": "loud_noise",
+        "timestamp": "2025-04-25 04:12:12"
+    },
+    {
+        "sensor": "acoustic",
+        "event": "loud_noise",
+        "timestamp": "2025-04-25 04:12:14"
+    },
+    {
+        "sensor": "acoustic",
+        "event": "loud_noise",
+        "timestamp": "2025-04-25 04:16:39"
+    },
+    {
+        "sensor": "acoustic",
+        "event": "loud_noise",
+        "timestamp": "2025-04-25 04:16:50"
+    },
+    {
+        "sensor": "acoustic",
+        "event": "loud_noise",
+        "timestamp": "2025-04-25 04:17:08"
+    },
+    {
+        "sensor": "acoustic",
+        "event": "loud_noise",
+        "timestamp": "2025-04-25 04:20:13"
+    },
+    {
+        "sensor": "acoustic",
+        "event": "loud_noise",
+        "timestamp": "2025-04-25 04:21:36"
     }
 ]

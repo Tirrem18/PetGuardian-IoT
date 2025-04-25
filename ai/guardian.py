@@ -21,8 +21,8 @@ TOPICS = [
 class GuardianAI:
     def __init__(self):
         self.ai = AIUtils()
-        self.enable_imu_thread = True
-        self.enable_acoustic_thread = True
+        self.enable_imu_thread = False
+        self.enable_acoustic_thread = False
         self.verbose = False
 
     def handle_ai_message(self, client, userdata, msg):
@@ -47,24 +47,16 @@ class GuardianAI:
         thread.start()
 
     def safe_start(self, name, func):
-        """Safely start a thread and catch fast exits or exceptions."""
+        """Start a sensor thread silently, only show if something goes wrong."""
         def run_wrapper():
-            print(f" [GUARDIAN] ▶️ {name} starting...")
             try:
                 func()
             except Exception as e:
                 print(f" [GUARDIAN ERROR] ❌ {name} crashed with exception: {e}")
-            else:
-                if time.time() - start_time < 1:
-                    print(f" [GUARDIAN WARNING] ⚠️ {name} exited immediately. Is it non-blocking?")
-                else:
-                    print(f" [GUARDIAN] ⛔️ {name} stopped unexpectedly.")
 
         try:
-            start_time = time.time()
             thread = threading.Thread(target=run_wrapper, name=name, daemon=True)
             thread.start()
-            print(f" [GUARDIAN] ✅ {name} thread launched.")
         except Exception as e:
             print(f" [GUARDIAN ERROR] ❌ Failed to start {name}: {e}")
 
@@ -86,21 +78,10 @@ class GuardianAI:
 
         from sensors import imu_sensor, acoustic_sensor
 
-        print("\n▶️ Sensor Startup Summary:")
-        print(f"   - IMU Enabled:    {self.enable_imu_thread}")
-        print(f"   - Sound Enabled:  {self.enable_acoustic_thread}")
-
         if self.enable_imu_thread:
             self.safe_start("IMU Listener", imu_sensor.start_imu_listener)
         if self.enable_acoustic_thread:
             self.safe_start("Acoustic Listener", acoustic_sensor.start_acoustic_listener)
-
-        # Give threads a moment to boot up
-        time.sleep(2)
-
-        print("\n📋 Thread Status Check:")
-        for t in threading.enumerate():
-            print(f"   - 🧵 {t.name} (alive: {t.is_alive()})")
 
         print("✅ Guardian AI sensors active.")
         try:

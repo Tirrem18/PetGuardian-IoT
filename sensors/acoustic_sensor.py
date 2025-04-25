@@ -30,7 +30,7 @@ USE_REAL_SENSOR = os.getenv("SOUND", "false").strip().lower() == "true"
 # --- Shared Utility Class ---
 utils = SensorUtils(
     sensor_name="acoustic",
-    topic_publish="petguardian/iot"
+    topic_publish="petguardian/acoustic"
 )
 
 # --- Event Logic ---
@@ -81,6 +81,7 @@ def run_interactive_mode():
 # --- Virtual Auto Simulation Mode ---
 def run_virtual_mode():
     print("[SIMULATION] Generating simulated sound events...\n")
+    time.sleep(0.5)
     try:
         while True:
             for _ in range(3):

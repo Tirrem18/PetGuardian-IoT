@@ -8,6 +8,8 @@ import paho.mqtt.client as mqtt
 from azure.iot.device import IoTHubDeviceClient, Message
 from azure.cosmos import CosmosClient
 import logging
+from dotenv import load_dotenv
+load_dotenv()
 
 # Suppress general Azure SDK logs to WARNING
 logging.getLogger("azure").setLevel(logging.WARNING)
