@@ -1,0 +1,989 @@
+[
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 01:39:54",
+        "accel_x": 50.0,
+        "accel_y": 20.0,
+        "accel_z": 10.0
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 01:40:15",
+        "accel_x": 0.0,
+        "accel_y": 0.0,
+        "accel_z": 0.0
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 01:47:08",
+        "accel_x": 60.0,
+        "accel_y": 40.0,
+        "accel_z": 10.0
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:18:37",
+        "accel_x": 5.68929,
+        "accel_y": 0.107531,
+        "accel_z": 7.049635
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:18:39",
+        "accel_x": 4.341401,
+        "accel_y": 0.775194,
+        "accel_z": 4.906307
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:18:40",
+        "accel_x": 7.079721,
+        "accel_y": 0.227596,
+        "accel_z": 5.198285
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:20:25",
+        "accel_x": 6.180605,
+        "accel_y": 0.334603,
+        "accel_z": 2.447254
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:20:27",
+        "accel_x": 4.816638,
+        "accel_y": 0.527752,
+        "accel_z": 5.045894
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:20:29",
+        "accel_x": 3.208466,
+        "accel_y": 0.367018,
+        "accel_z": 8.604445
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:23:15",
+        "accel_x": 4.376922,
+        "accel_y": 0.251219,
+        "accel_z": 3.114626
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:23:18",
+        "accel_x": 0.382212,
+        "accel_y": 0.00046,
+        "accel_z": 4.450478
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:23:21",
+        "accel_x": 7.605052,
+        "accel_y": 0.29903,
+        "accel_z": 0.547247
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:23:55",
+        "accel_x": 2.511312,
+        "accel_y": 0.954519,
+        "accel_z": 6.457463
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:23:57",
+        "accel_x": 4.389943,
+        "accel_y": 0.440478,
+        "accel_z": 3.526518
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:24:00",
+        "accel_x": 6.648003,
+        "accel_y": 0.643334,
+        "accel_z": 2.026749
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:25:32",
+        "accel_x": 4.459343,
+        "accel_y": 0.649042,
+        "accel_z": 6.976927
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:25:34",
+        "accel_x": 0.751205,
+        "accel_y": 0.872746,
+        "accel_z": 8.709803
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:25:36",
+        "accel_x": 7.757109,
+        "accel_y": 0.479866,
+        "accel_z": 3.614324
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:26:57",
+        "accel_x": 6.80995,
+        "accel_y": 0.573116,
+        "accel_z": 6.455712
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:44:14",
+        "accel_x": 1.392783,
+        "accel_y": 0.913425,
+        "accel_z": 8.315185
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:44:17",
+        "accel_x": 8.917748,
+        "accel_y": 0.28642,
+        "accel_z": 5.346804
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:44:18",
+        "accel_x": 4.628053,
+        "accel_y": 0.764985,
+        "accel_z": 1.686957
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:46:21",
+        "accel_x": 4.307739,
+        "accel_y": 0.001779,
+        "accel_z": 1.581429
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:46:24",
+        "accel_x": 0.075818,
+        "accel_y": 0.170478,
+        "accel_z": 8.160611
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:46:36",
+        "accel_x": 7.545692,
+        "accel_y": 0.138893,
+        "accel_z": 7.204215
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:46:39",
+        "accel_x": 4.789324,
+        "accel_y": 0.475603,
+        "accel_z": 2.413038
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:46:42",
+        "accel_x": 6.253157,
+        "accel_y": 0.392372,
+        "accel_z": 0.842512
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:49:44",
+        "accel_x": 6.367655,
+        "accel_y": 0.937755,
+        "accel_z": 2.141179
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:49:47",
+        "accel_x": 7.127998,
+        "accel_y": 0.258867,
+        "accel_z": 3.436879
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:49:50",
+        "accel_x": 1.581217,
+        "accel_y": 0.248158,
+        "accel_z": 5.428914
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:51:52",
+        "accel_x": 5.161717,
+        "accel_y": 0.160974,
+        "accel_z": 0.332507
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:51:55",
+        "accel_x": 2.065123,
+        "accel_y": 0.060721,
+        "accel_z": 1.672171
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:51:58",
+        "accel_x": 2.897362,
+        "accel_y": 0.708484,
+        "accel_z": 6.791927
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:54:00",
+        "accel_x": 7.219745,
+        "accel_y": 0.922666,
+        "accel_z": 1.307205
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:54:03",
+        "accel_x": 5.085519,
+        "accel_y": 0.474663,
+        "accel_z": 3.250263
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:54:06",
+        "accel_x": 0.240637,
+        "accel_y": 0.167571,
+        "accel_z": 8.51475
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:54:44",
+        "accel_x": 1.384367,
+        "accel_y": 0.98941,
+        "accel_z": 2.103383
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:54:46",
+        "accel_x": 1.646451,
+        "accel_y": 0.405068,
+        "accel_z": 0.935864
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 02:54:49",
+        "accel_x": 3.39875,
+        "accel_y": 0.678081,
+        "accel_z": 2.901017
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:01:55",
+        "accel_x": 0.668799,
+        "accel_y": 0.948693,
+        "accel_z": 6.993379
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:01:57",
+        "accel_x": 0.585281,
+        "accel_y": 0.098656,
+        "accel_z": 4.7308
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:02:00",
+        "accel_x": 4.426175,
+        "accel_y": 0.898252,
+        "accel_z": 4.03978
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:09:12",
+        "accel_x": 1.005688,
+        "accel_y": 0.985543,
+        "accel_z": 8.172475
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:14:25",
+        "accel_x": 5.490379,
+        "accel_y": 0.68584,
+        "accel_z": 7.246693
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:14:27",
+        "accel_x": 0.677719,
+        "accel_y": 0.966005,
+        "accel_z": 7.453905
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:14:30",
+        "accel_x": 6.25862,
+        "accel_y": 0.909943,
+        "accel_z": 1.246553
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:21:42",
+        "accel_x": 7.22606,
+        "accel_y": 0.867787,
+        "accel_z": 6.761466
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:21:45",
+        "accel_x": 8.215015,
+        "accel_y": 0.1437,
+        "accel_z": 8.713435
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:21:47",
+        "accel_x": 8.147656,
+        "accel_y": 0.546083,
+        "accel_z": 6.38691
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:22:36",
+        "accel_x": 8.551483,
+        "accel_y": 0.06759,
+        "accel_z": 7.902304
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:22:38",
+        "accel_x": 0.621215,
+        "accel_y": 0.049981,
+        "accel_z": 0.723199
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:33:52",
+        "accel_x": 6.504278,
+        "accel_y": 0.450746,
+        "accel_z": 1.404495
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:33:52",
+        "accel_x": 7.674239,
+        "accel_y": 0.593544,
+        "accel_z": 1.998336
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:33:56",
+        "accel_x": 3.207556,
+        "accel_y": 0.01124,
+        "accel_z": 0.718269
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:33:57",
+        "accel_x": 8.447768,
+        "accel_y": 0.699812,
+        "accel_z": 3.567755
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:33:57",
+        "accel_x": 4.074975,
+        "accel_y": 0.562822,
+        "accel_z": 7.931404
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:33:59",
+        "accel_x": 3.876091,
+        "accel_y": 0.165084,
+        "accel_z": 3.137663
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:35:04",
+        "accel_x": 1.4526,
+        "accel_y": 0.772275,
+        "accel_z": 4.311278
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:35:05",
+        "accel_x": 8.091012,
+        "accel_y": 0.839035,
+        "accel_z": 8.676068
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:35:23",
+        "accel_x": 1.717467,
+        "accel_y": 0.690302,
+        "accel_z": 7.989991
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:35:35",
+        "accel_x": 7.591504,
+        "accel_y": 0.603734,
+        "accel_z": 6.089578
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:35:46",
+        "accel_x": 2.474195,
+        "accel_y": 0.533758,
+        "accel_z": 6.775192
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:35:46",
+        "accel_x": 4.23387,
+        "accel_y": 0.824327,
+        "accel_z": 2.403144
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:35:48",
+        "accel_x": 6.454079,
+        "accel_y": 0.932058,
+        "accel_z": 8.616565
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:35:48",
+        "accel_x": 6.835842,
+        "accel_y": 0.772312,
+        "accel_z": 3.709289
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:35:51",
+        "accel_x": 7.581096,
+        "accel_y": 0.870746,
+        "accel_z": 5.604455
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:35:51",
+        "accel_x": 3.376056,
+        "accel_y": 0.677753,
+        "accel_z": 1.224616
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:37:08",
+        "accel_x": 8.423935,
+        "accel_y": 0.133453,
+        "accel_z": 7.176595
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:37:08",
+        "accel_x": 1.073995,
+        "accel_y": 0.901506,
+        "accel_z": 5.617395
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:40:43",
+        "accel_x": 3.747669,
+        "accel_y": 0.326619,
+        "accel_z": 4.523361
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:40:44",
+        "accel_x": 7.530527,
+        "accel_y": 0.684096,
+        "accel_z": 5.180997
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:40:46",
+        "accel_x": 5.818343,
+        "accel_y": 0.503128,
+        "accel_z": 0.208447
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:40:47",
+        "accel_x": 2.635237,
+        "accel_y": 0.573336,
+        "accel_z": 8.961986
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:40:48",
+        "accel_x": 6.479447,
+        "accel_y": 0.028916,
+        "accel_z": 5.834765
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:40:50",
+        "accel_x": 6.381638,
+        "accel_y": 0.532704,
+        "accel_z": 2.821059
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:43:48",
+        "accel_x": 3.037028,
+        "accel_y": 0.378949,
+        "accel_z": 8.864857
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:43:49",
+        "accel_x": 1.55855,
+        "accel_y": 0.888166,
+        "accel_z": 8.790075
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:43:50",
+        "accel_x": 3.995091,
+        "accel_y": 0.677253,
+        "accel_z": 1.543491
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:43:51",
+        "accel_x": 8.177457,
+        "accel_y": 0.552961,
+        "accel_z": 0.587653
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:43:53",
+        "accel_x": 0.201452,
+        "accel_y": 0.000172,
+        "accel_z": 3.245937
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:43:53",
+        "accel_x": 7.768401,
+        "accel_y": 0.945574,
+        "accel_z": 2.4405
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:45:03",
+        "accel_x": 1.213546,
+        "accel_y": 0.762668,
+        "accel_z": 8.061865
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:45:03",
+        "accel_x": 7.350703,
+        "accel_y": 0.002048,
+        "accel_z": 3.432854
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:45:05",
+        "accel_x": 7.242511,
+        "accel_y": 0.688473,
+        "accel_z": 1.700242
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:45:06",
+        "accel_x": 0.17461,
+        "accel_y": 0.054448,
+        "accel_z": 1.397928
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:45:06",
+        "accel_x": 5.149445,
+        "accel_y": 0.549169,
+        "accel_z": 7.936661
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:45:08",
+        "accel_x": 7.143896,
+        "accel_y": 0.250997,
+        "accel_z": 7.333808
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:47:01",
+        "accel_x": 0.712928,
+        "accel_y": 0.64024,
+        "accel_z": 5.52321
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:47:01",
+        "accel_x": 2.914179,
+        "accel_y": 0.248212,
+        "accel_z": 5.205207
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:47:04",
+        "accel_x": 1.751662,
+        "accel_y": 0.340285,
+        "accel_z": 5.741923
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:47:05",
+        "accel_x": 3.537607,
+        "accel_y": 0.874536,
+        "accel_z": 6.573231
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:47:06",
+        "accel_x": 4.31271,
+        "accel_y": 0.737186,
+        "accel_z": 7.316566
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:47:08",
+        "accel_x": 0.27008,
+        "accel_y": 0.124468,
+        "accel_z": 5.484558
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:50:51",
+        "accel_x": 7.168769,
+        "accel_y": 0.336057,
+        "accel_z": 3.792221
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:50:51",
+        "accel_x": 6.949436,
+        "accel_y": 0.453461,
+        "accel_z": 8.084789
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:50:55",
+        "accel_x": 5.138453,
+        "accel_y": 0.784595,
+        "accel_z": 8.203163
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:50:56",
+        "accel_x": 4.708054,
+        "accel_y": 0.591559,
+        "accel_z": 6.330952
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:50:57",
+        "accel_x": 0.606782,
+        "accel_y": 0.835023,
+        "accel_z": 4.377366
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:50:59",
+        "accel_x": 2.079366,
+        "accel_y": 0.680154,
+        "accel_z": 3.162477
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:52:23",
+        "accel_x": 0.114502,
+        "accel_y": 0.670758,
+        "accel_z": 2.689724
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:52:23",
+        "accel_x": 2.778257,
+        "accel_y": 0.179321,
+        "accel_z": 6.701878
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:52:27",
+        "accel_x": 0.47452,
+        "accel_y": 0.929793,
+        "accel_z": 6.203696
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:52:28",
+        "accel_x": 1.800713,
+        "accel_y": 0.824781,
+        "accel_z": 4.529226
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:52:30",
+        "accel_x": 2.929405,
+        "accel_y": 0.309404,
+        "accel_z": 4.131578
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:52:32",
+        "accel_x": 0.527647,
+        "accel_y": 0.976694,
+        "accel_z": 6.23404
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:52:50",
+        "accel_x": 8.527522,
+        "accel_y": 0.447609,
+        "accel_z": 0.29344
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:52:50",
+        "accel_x": 1.571217,
+        "accel_y": 0.291816,
+        "accel_z": 7.493216
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:52:52",
+        "accel_x": 5.615239,
+        "accel_y": 0.380713,
+        "accel_z": 1.438162
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:52:53",
+        "accel_x": 4.724649,
+        "accel_y": 0.145484,
+        "accel_z": 6.817455
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:52:55",
+        "accel_x": 8.740541,
+        "accel_y": 0.664924,
+        "accel_z": 1.410463
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:52:55",
+        "accel_x": 4.26133,
+        "accel_y": 0.52572,
+        "accel_z": 3.190013
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:52:56",
+        "accel_x": 1.717148,
+        "accel_y": 0.446272,
+        "accel_z": 2.569062
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:52:59",
+        "accel_x": 7.833059,
+        "accel_y": 0.685349,
+        "accel_z": 2.936046
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:52:59",
+        "accel_x": 0.359908,
+        "accel_y": 0.441246,
+        "accel_z": 8.925872
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:53:00",
+        "accel_x": 1.028417,
+        "accel_y": 0.172435,
+        "accel_z": 6.548381
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:53:01",
+        "accel_x": 5.283949,
+        "accel_y": 0.484071,
+        "accel_z": 3.808776
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:53:03",
+        "accel_x": 2.278803,
+        "accel_y": 0.779903,
+        "accel_z": 5.952208
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:53:21",
+        "accel_x": 1.920659,
+        "accel_y": 0.974935,
+        "accel_z": 8.025
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:53:22",
+        "accel_x": 5.384604,
+        "accel_y": 0.207219,
+        "accel_z": 4.306251
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:53:24",
+        "accel_x": 2.808426,
+        "accel_y": 0.698412,
+        "accel_z": 5.311865
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:53:25",
+        "accel_x": 6.575818,
+        "accel_y": 0.272379,
+        "accel_z": 4.749297
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:53:25",
+        "accel_x": 2.61582,
+        "accel_y": 0.669541,
+        "accel_z": 6.278909
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:53:28",
+        "accel_x": 0.785492,
+        "accel_y": 0.138367,
+        "accel_z": 3.40096
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:57:47",
+        "accel_x": 0.708439,
+        "accel_y": 0.377998,
+        "accel_z": 1.684851
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:57:49",
+        "accel_x": 7.490369,
+        "accel_y": 0.230892,
+        "accel_z": 8.483155
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:57:50",
+        "accel_x": 7.753236,
+        "accel_y": 0.731698,
+        "accel_z": 6.931085
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:57:51",
+        "accel_x": 7.116824,
+        "accel_y": 0.57428,
+        "accel_z": 5.243644
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:57:52",
+        "accel_x": 2.889983,
+        "accel_y": 0.117537,
+        "accel_z": 3.274003
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 03:57:54",
+        "accel_x": 1.723483,
+        "accel_y": 0.590213,
+        "accel_z": 6.078446
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 04:02:51",
+        "accel_x": 4.077336,
+        "accel_y": 0.018977,
+        "accel_z": 2.756604
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 04:02:53",
+        "accel_x": 5.166423,
+        "accel_y": 0.087925,
+        "accel_z": 7.346787
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 04:02:56",
+        "accel_x": 2.580582,
+        "accel_y": 0.517249,
+        "accel_z": 5.944164
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 04:04:04",
+        "accel_x": 8.756691,
+        "accel_y": 0.141543,
+        "accel_z": 4.851876
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 04:04:08",
+        "accel_x": 0.157,
+        "accel_y": 0.161142,
+        "accel_z": 7.633489
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 04:04:11",
+        "accel_x": 2.451592,
+        "accel_y": 0.896131,
+        "accel_z": 2.952541
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 04:04:43",
+        "accel_x": 1.061217,
+        "accel_y": 0.219408,
+        "accel_z": 2.261716
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 04:04:45",
+        "accel_x": 5.030694,
+        "accel_y": 0.303953,
+        "accel_z": 2.329616
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 04:04:48",
+        "accel_x": 0.440265,
+        "accel_y": 0.313272,
+        "accel_z": 5.247941
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 04:05:32",
+        "accel_x": 7.409849,
+        "accel_y": 0.225344,
+        "accel_z": 5.342042
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 04:05:35",
+        "accel_x": 0.938603,
+        "accel_y": 0.256547,
+        "accel_z": 2.387505
+    },
+    {
+        "sensor": "imu",
+        "timestamp": "2025-04-25 04:05:37",
+        "accel_x": 8.59917,
+        "accel_y": 0.082287,
+        "accel_z": 1.714682
+    }
+]

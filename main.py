@@ -1,7 +1,8 @@
-from ai import ai_controller
+# main.py
+from ai.guardian import start_guardian
 
 def main():
-    ai_controller.start_ai_listener()
+    start_guardian()
 
 if __name__ == "__main__":
     main()
