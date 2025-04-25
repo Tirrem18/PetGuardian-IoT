@@ -3,7 +3,7 @@ import time
 import os
 import json
 from math import radians, cos, sin, sqrt, atan2
-from ai.old.threat_uploader_test import send_threat_to_cosmos, send_threat_to_azure
+from ai.utils.threat_uploader import send_threat_to_cosmos, send_threat_to_azure
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sensors.old.camera_sensor_test import trigger_camera

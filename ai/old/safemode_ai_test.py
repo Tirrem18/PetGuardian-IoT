@@ -8,7 +8,7 @@ from azure.iot.device import IoTHubDeviceClient, Message
 from azure.cosmos import CosmosClient
 import paho.mqtt.client as mqtt
 
-from ai.old.threat_uploader_test import send_threat_to_cosmos, send_threat_to_azure
+from ai.utils.threat_uploader import send_threat_to_cosmos, send_threat_to_azure
 
 # MQTT + Azure setup
 BROKER = "a5c9d1ea0e224376ad6285eb8aa83d55.s1.eu.hivemq.cloud"

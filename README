@@ -1,0 +1,91 @@
+# 📘 PetGuardian IoT - README
+
+## Overview
+
+PetGuardian is a modular IoT-based system designed to simulate a wearable smart collar. It features active and passive sensors that monitor environmental data, detect potential threats, and control devices like cameras and LED bulbs. The system supports both real hardware and virtual simulation, making it easy to test, debug, and demonstrate in any environment.
+
+---
+
+## 📂 Folder Structure
+
+```
+PetGuardian-IoT/
+├── ai/                  # AI controller and logic (guardian.py)
+├── sensors/             # All sensor modules (camera, GPS, etc.)
+│   └── utils/           # Shared SensorUtils class
+│   
+├── data/
+│   └── logs/            # Log files and captured images
+├── tests/               # External test scripts (e.g., Cosmos parser)
+│    └── test_images/     # Test images for camera simulation
+└── main.py              # Entry point for live collar mode
+```
+
+---
+
+## 🔄 Sensor Scripts - Interactive Mode
+
+Each sensor (e.g., `camera_sensor.py`, `gps_sensor.py`) can be run **individually** for simulation and testing.
+
+### How It Works:
+
+- If the script is run directly, it enters **interactive mode**.
+- If the required hardware is **not connected**, the user will be prompted for **manual input or simulation**.
+- Outputs are printed to console and also saved to:
+  - Local log files (`data/logs/*.json`)
+  - Azure IoT Hub
+  - Azure Cosmos DB
+
+### Example:
+
+python sensors/gps_sensor.py
+python sensors/camera_sensor.py
+
+You'll see prompts like:
+
+[INTERACTIVE] Type 'G' to simulate GPS event, or 'X' to exit.
+[INTERACTIVE] Select test image: 1-Dog  2-Bike  3-Human
+
+
+
+## 🚀 `main.py` or `guardian.py` - Collar Mode
+
+When the system is run using `main.py` or `guardian.py`, it simulates the **live collar environment**:
+
+- All active sensors (IMU, acoustic) start running automatically
+- Passive sensors (camera, GPS, lux, bulb) listen for MQTT commands
+- Threads are used to run each sensor listener
+- Hardware devices are used if available, otherwise simulation is used silently
+
+
+
+## 🧪 Test Triggers (MQTT)
+
+Use MQTT (e.g. HiveMQ or Python script) to send test commands:
+
+**Trigger GPS**
+
+Topic: petguardian/trigger/gps
+Payload: { "command": "get_gps" }
+
+**Trigger Camera**
+
+Topic: petguardian/trigger/camera
+Payload: { "command": "get_camera" }
+
+
+**Control Bulb**
+
+
+Topic: petguardian/trigger/bulb
+Payload: { "command": "turn_on" } or { "command": "turn_off" }
+
+
+---
+
+## ✅ Summary
+
+- Each sensor script can be run independently with fallback options
+- `main.py` runs the system like a live collar
+- MQTT topics allow full external control of passive sensors
+- Logs are saved locally and sent to cloud for review and analysis

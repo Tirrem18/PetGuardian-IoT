@@ -108,13 +108,18 @@ class SensorUtils:
         def on_connect(client, userdata, flags, rc):
             if rc == 0:
                 print(f"[MQTT] {self.sensor} connected.")
+                print(f"[MQTT] Subscribing to topic: {self.topic_trigger}")
                 client.subscribe(self.topic_trigger)
-                print(f"[MQTT] Subscribed to: {self.topic_trigger}")
+                client.message_callback_add(self.topic_trigger, on_message_callback)
             else:
                 print(f"[MQTT ERROR] Connect failed with code {rc}")
 
         self.mqtt_client.on_connect = on_connect
-        self.mqtt_client.on_message = on_message_callback
+
+        # Optional debug (only one global handler is allowed)
+        self.mqtt_client.on_message = lambda client, userdata, msg: print(
+            f"[DEBUG] Unhandled topic {msg.topic}: {msg.payload.decode(errors='ignore')}"
+        )
 
         for attempt in range(10):
             try:
@@ -124,6 +129,4 @@ class SensorUtils:
                 return
             except Exception as e:
                 print(f"[MQTT ERROR] Attempt {attempt+1}: {e}")
-                time.sleep(1)
-
-        print(f"[MQTT ERROR] {self.sensor} failed to connect after 10 attempts.")
+            time.sleep(1)

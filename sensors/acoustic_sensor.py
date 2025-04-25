@@ -35,6 +35,8 @@ utils = SensorUtils(
 
 # --- Event Logic ---
 def handle_sound_event():
+    print("[ACOUSTIC] 🔊 Sending sound event to MQTT...")
+
     timestamp = utils.get_timestamp()
     data = {
         "sensor": "acoustic",
@@ -80,13 +82,14 @@ def run_interactive_mode():
 
 # --- Virtual Auto Simulation Mode ---
 def run_virtual_mode():
-    print("[SIMULATION] Generating simulated sound events...\n")
-    time.sleep(0.5)
+    time.sleep(2.5)
+    print("\n[SIMULATION] Generating simulated sound events...\n")
+    time.sleep(1.5)
     try:
         while True:
             for _ in range(3):
                 time.sleep(random.uniform(1, 3))
-                print("[SIM] Simulated sound spike.")
+                print("\n[SIM] Simulated sound spike.")
                 handle_sound_event()
             print("[SIM] Cooling down for 150 seconds.")
             time.sleep(150)
@@ -106,18 +109,24 @@ def prompt_sensor_mode():
     
 def start_acoustic_listener():
     """Start acoustic sensor listener as a daemon thread (real or virtual)."""
+
+    print("[ACOUSTIC] 📡 Connecting MQTT from collar mode...")
+    utils.mqtt_client.connect(utils.broker, utils.port, 60)
+    utils.mqtt_client.loop_start()
+
     def _acoustic_run_thread():
         if USE_REAL_SENSOR and REAL_SENSOR_AVAILABLE:
-                run_real_mode()
+            run_real_mode()
         else:
-                run_virtual_mode()
+            run_virtual_mode()
 
     thread = threading.Thread(
-            target=_acoustic_run_thread,
-            name="AcousticSensorThread",
-            daemon=True
+        target=_acoustic_run_thread,
+        name="AcousticSensorThread",
+        daemon=True
     )
     thread.start()
+
 
 
 # --- Entry Point: Developer Testing ---

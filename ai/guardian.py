@@ -1,5 +1,3 @@
-# ai/guardian.py
-
 import time
 import threading
 import json
@@ -8,7 +6,9 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from ai.threats_ai import ThreatAI
 from ai.utils.ai_utils import AIUtils
+
 
 TOPICS = [
     ("petguardian/acoustic", 0),
@@ -19,23 +19,64 @@ TOPICS = [
 ]
 
 class GuardianAI:
-    def __init__(self):
-        self.ai = AIUtils()
-        self.enable_imu_thread = False
-        self.enable_acoustic_thread = False
+    def __init__(self, client_id="guardian_core"):
+        
+        self.ai = AIUtils(client_id="guardian_core")
+        print(f"[MQTT] Using client_id: {client_id}")
+
+
+        self.threat_ai = ThreatAI(client_id="threats_core")
+
+        self.enable_illuminator = False
+        self.enable_threats = False
         self.verbose = False
 
+        self.load_feature_config()
+
+    def load_feature_config(self):
+        """Simulate loading config from Cosmos DB or another source."""
+        try:
+            # Placeholder config fetch (replace with Cosmos fetch in future)
+            config = {
+                "illuminator_enabled": False,
+                "threats_enabled": True  # ENABLE THREAT AI by default for testing
+            }
+
+            self.enable_illuminator = config.get("illuminator_enabled", False)
+            self.enable_threats = config.get("threats_enabled", False)
+
+            print(f"[CONFIG] Illuminator enabled: {self.enable_illuminator}")
+            print(f"[CONFIG] Threat detection enabled: {self.enable_threats}")
+
+        except Exception as e:
+            print(f"[CONFIG ERROR] Failed to load config: {e}")
+            print("[CONFIG] Using default settings (both off)")
+
     def handle_ai_message(self, client, userdata, msg):
+        print("🔥 handle_ai_message() triggered!")
         try:
             payload = json.loads(msg.payload.decode(errors='ignore'))
+            topic = msg.topic
+
             if self.verbose:
-                print(f"\n📡 MQTT: {msg.topic}")
+                print(f"\n📡 MQTT: {topic}")
                 print(json.dumps(payload, indent=2))
+
+            # Route messages to Threat AI
+            if self.enable_threats:
+                if topic == "petguardian/acoustic":
+                    self.threat_ai.handle_acoustic_event(payload)
+
+                elif topic == "petguardian/gps":
+                    self.threat_ai.handle_gps_event(payload)
+
         except Exception as e:
-            print(f"⚠️ Failed to parse message: {e}")
+            print(f"⚠️ Failed to parse or handle message: {e}")
 
     def start_mqtt_listener(self):
-        print("📡 Starting MQTT listener thread...")
+        topic_list = [topic for topic, _ in TOPICS]
+        print(f"[MQTT] Subscribed to: {', '.join(topic_list)}")
+        print("[MQTT] Enabled MQTT listener thread for topics...\n")
         thread = threading.Thread(
             target=lambda: self.ai.connect_and_listen(
                 on_message=self.handle_ai_message,
@@ -72,27 +113,25 @@ class GuardianAI:
             print("\n👋 Guardian shutting down (test mode).")
 
     def start(self):
-        print("\n🛡️ Guardian starting in collar mode (live system)...")
+        print("\n🛡️ Guardian starting in collar mode (live system)...\n")
         self.verbose = False
         self.start_mqtt_listener()
 
         from sensors import imu_sensor, acoustic_sensor, gps_sensor, lux_sensor, camera_sensor, led_bulb
 
-        if self.enable_imu_thread:
+        if self.enable_illuminator:
             self.safe_start("IMU Listener", imu_sensor.start_imu_listener)
-            self.safe_start("LUX Listener", lux_sensor.start_lux_listener)
-            self.safe_start("Bulb Listener", led_bulb.start_bulb_listener)
+            
 
-        if self.enable_acoustic_thread:
+        if self.enable_threats:
             self.safe_start("Acoustic Listener", acoustic_sensor.start_acoustic_listener)
-            self.safe_start("Camera Listener", camera_sensor.start_camera_listener)
 
-        self.safe_start("GPS Listener", gps_sensor.start_gps_listener)
         self.safe_start("LUX Listener", lux_sensor.start_lux_listener)
         self.safe_start("Bulb Listener", led_bulb.start_bulb_listener)
         self.safe_start("Camera Listener", camera_sensor.start_camera_listener)
+        self.safe_start("GPS Listener", gps_sensor.start_gps_listener)
 
-        print("✅ Guardian AI sensors active.")
+        print("\n✅ Guardian AI sensors active.\n")
         try:
             while True:
                 time.sleep(1)

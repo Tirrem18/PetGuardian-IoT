@@ -12,11 +12,11 @@ from dotenv import load_dotenv
 # Load environment variables from .env
 load_dotenv()
 
-# Clean Azure logging
+# Suppress Azure SDK logs
 logging.getLogger("azure").setLevel(logging.WARNING)
 
 class AIUtils:
-    def __init__(self):
+    def __init__(self, client_id="ai_core"):
         self.timestamp_format = "%Y-%m-%d %H:%M:%S"
 
         # --- MQTT Setup ---
@@ -24,9 +24,16 @@ class AIUtils:
         self.port = int(os.getenv("MQTT_PORT", "8883"))
         self.username = os.getenv("MQTT_USERNAME")
         self.password = os.getenv("MQTT_PASSWORD")
-        self.client = mqtt.Client(client_id="ai_core")
+        self.client = mqtt.Client(client_id=client_id)
         self.client.username_pw_set(self.username, self.password)
         self.client.tls_set()
+
+        try:
+            self.client.connect(self.broker, self.port, 60)
+            self.client.loop_start()
+            print("[MQTT] ✅ AIUtils MQTT client connected and loop started.")
+        except Exception as e:
+            print(f"[MQTT ERROR] ❌ Could not connect in AIUtils init: {e}")
 
         # --- Azure IoT Hub ---
         self.azure_conn = os.getenv("AZURE_CONN")
@@ -53,12 +60,15 @@ class AIUtils:
         payload = json.dumps(payload_dict)
         for attempt in range(3):
             try:
-                self.client.publish(topic, payload)
-                print(f"[MQTT] Published to {topic}: {payload}")
-                break
+                result = self.client.publish(topic, payload)
+                print(f"[MQTT] Published to {topic}")
+                return True
             except Exception as e:
                 print(f"[MQTT ERROR] Attempt {attempt + 1} failed: {e}")
                 time.sleep(1)
+        print(f"[MQTT ERROR] Failed to publish to {topic}")
+        return False
+
 
     def send_to_azure(self, payload_dict):
         try:
@@ -66,7 +76,6 @@ class AIUtils:
             client = IoTHubDeviceClient.create_from_connection_string(self.azure_conn)
             client.send_message(Message(payload))
             client.disconnect()
-            print("[AZURE] Data sent to IoT Hub.")
         except Exception as e:
             print(f"[AZURE ERROR] {e}")
 
@@ -83,31 +92,50 @@ class AIUtils:
                 "timestamp": payload_dict.get("timestamp", self.get_timestamp())
             }
             self.container.create_item(body=doc)
-            print("[COSMOS] AI telemetry stored.")
         except Exception as e:
             print(f"[COSMOS ERROR] {e}")
 
     def connect_and_listen(self, on_message, topics):
         def on_connect(client, userdata, flags, rc):
             if rc == 0:
-                print("[MQTT] AI connected to broker.")
                 for topic, qos in topics:
                     client.subscribe((topic, qos))
-                    print(f"[MQTT] Subscribed to: {topic}")
             else:
-                print(f"[MQTT ERROR] Failed with code {rc}")
+                print(f"[MQTT ERROR] Failed to connect with code {rc}")
 
         self.client.on_connect = on_connect
         self.client.on_message = on_message
 
         for attempt in range(10):
             try:
-                print(f"[MQTT] Connecting (attempt {attempt+1})...")
                 self.client.connect(self.broker, self.port, 60)
                 self.client.loop_start()
                 return
             except Exception as e:
-                print(f"[MQTT ERROR] Attempt {attempt+1}: {e}")
+                print(f"[MQTT ERROR] Attempt {attempt + 1}: {e}")
                 time.sleep(1)
 
         print("[MQTT ERROR] Failed to connect after 10 attempts.")
+
+    def log_locally(self, file_name, data):
+        try:
+            root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+            log_dir = os.path.join(root_dir, "data", "logs")
+            os.makedirs(log_dir, exist_ok=True)
+            path = os.path.join(log_dir, file_name)
+
+            logs = []
+            if os.path.exists(path):
+                with open(path, "r") as f:
+                    try:
+                        logs = json.load(f)
+                    except:
+                        logs = []
+
+            logs.append(data)
+            with open(path, "w") as f:
+                json.dump(logs, f, indent=4)
+
+            print(f"[LOCAL LOG] ✅ Saved to {file_name}")
+        except Exception as e:
+            print(f"[LOCAL LOG ERROR] {e}")
