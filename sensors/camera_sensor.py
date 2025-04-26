@@ -55,9 +55,11 @@ except Exception as e:
 
 
 # --- Handle Camera Event ---
-def handle_camera_event(timestamp=None):
+def handle_camera_event(timestamp=None, filename=None):
     timestamp = timestamp or utils.get_timestamp()
-    filename = f"{timestamp.replace(':', '-').replace(' ', '_')}.jpg"
+
+    # Use provided filename or fall back to one based on timestamp
+    filename = filename or f"{timestamp.replace(':', '-').replace(' ', '_')}.jpg"
     image_path = os.path.join(SAVE_DIR, filename)
 
     if INTERACTIVE_MODE and REAL_CAMERA:
@@ -157,7 +159,9 @@ def start_camera_listener():
             payload = json.loads(msg.payload.decode())
             if payload.get("command") == "get_camera":
                 timestamp = payload.get("timestamp") or utils.get_timestamp()
-                handle_camera_event(timestamp)
+                filename = payload.get("filename")  # ✅ NEW
+                handle_camera_event(timestamp, filename)
+
         except Exception as e:
             print(f"[ERROR] Failed to handle trigger: {e}")
 

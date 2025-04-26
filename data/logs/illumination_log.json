@@ -1,0 +1,38 @@
+[
+    {
+        "timestamp": "2025-04-26 05:38:38",
+        "event": "illumination",
+        "score": 10.78,
+        "reason": "Movement + Darkness + GPS risk exceeded threshold."
+    },
+    {
+        "timestamp": "2025-04-26 05:38:55",
+        "event": "illumination",
+        "score": 6.97,
+        "reason": "Movement + Darkness + GPS risk exceeded threshold."
+    },
+    {
+        "timestamp": "2025-04-26 05:41:55",
+        "event": "illumination",
+        "score": 11.0,
+        "reason": "Movement + Darkness + GPS risk exceeded threshold."
+    },
+    {
+        "timestamp": "2025-04-26 05:42:48",
+        "event": "illumination",
+        "score": 8.35,
+        "reason": "Movement + Darkness + GPS risk exceeded threshold."
+    },
+    {
+        "timestamp": "2025-04-26 05:43:04",
+        "event": "illumination",
+        "score": 10.01,
+        "reason": "Movement + Darkness + GPS risk exceeded threshold."
+    },
+    {
+        "timestamp": "2025-04-26 05:43:15",
+        "event": "illumination",
+        "score": 10.14,
+        "reason": "Movement + Darkness + GPS risk exceeded threshold."
+    }
+]

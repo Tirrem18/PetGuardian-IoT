@@ -25,6 +25,9 @@ utils = SensorUtils(
 )
 
 # --- Bulb Simulation Logic ---
+bulb_timer = None
+bulb_lock = threading.Lock()
+
 def turn_on_bulb():
     print("[BULB] 💡 Bulb turned ON")
     log_bulb_event("on")
@@ -45,6 +48,26 @@ def log_bulb_event(state):
     utils.send_to_azure(data)
     utils.send_to_cosmos(data)
 
+def restart_bulb_timer(duration):
+    global bulb_timer
+    with bulb_lock:
+        if bulb_timer is not None:
+            bulb_timer.cancel()
+        bulb_timer = threading.Timer(duration, auto_turn_off)
+        bulb_timer.start()
+        print(f"[BULB] 🕒 Timer set/reset for {duration} seconds.")
+
+def cancel_bulb_timer():
+    global bulb_timer
+    with bulb_lock:
+        if bulb_timer is not None:
+            bulb_timer.cancel()
+            bulb_timer = None
+            print("[BULB] 🛑 Timer cancelled.")
+
+def auto_turn_off():
+    with bulb_lock:
+        turn_off_bulb()
 
 # --- MQTT Trigger Listener ---
 def start_bulb_listener():
@@ -53,21 +76,23 @@ def start_bulb_listener():
         try:
             payload = json.loads(msg.payload.decode())
             cmd = payload.get("command", "").lower()
+            duration = int(payload.get("duration", 10))  # Default to 10s if no duration sent
+
             if cmd == "turn_on":
                 turn_on_bulb()
+                restart_bulb_timer(duration)
             elif cmd == "turn_off":
+                cancel_bulb_timer()
                 turn_off_bulb()
         except Exception as e:
             print(f"[ERROR] Failed to handle bulb trigger: {e}")
 
     utils.start_mqtt_listener(on_bulb_trigger)
 
-
 # --- Threaded entry for Guardian ---
 def start_bulb_thread():
     thread = threading.Thread(target=start_bulb_listener, name="BulbListenerThread", daemon=True)
     thread.start()
-
 
 # --- Developer Test Mode ---
 if __name__ == "__main__":
@@ -82,7 +107,9 @@ if __name__ == "__main__":
                 cmd = input(">>> ").strip().lower()
                 if cmd == "on":
                     turn_on_bulb()
+                    restart_bulb_timer(10)  # Manual testing: 10 seconds default
                 elif cmd == "off":
+                    cancel_bulb_timer()
                     turn_off_bulb()
                 elif cmd == "x":
                     print("[EXIT] Exiting bulb interactive mode.")

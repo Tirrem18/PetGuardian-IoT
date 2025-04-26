@@ -23,21 +23,18 @@ print(f"Connected to Cosmos DB - Database: {DATABASE_NAME}, Container: {CONTAINE
 print("Retrieving and decoding telemetry data...\n")
 
 items_found = False  # Flag to track if any items were retrieved
+printed_events = set()  # To track and skip duplicates
 
 # Query all telemetry entries in the container
 for item in container.query_items(query="SELECT * FROM c", enable_cross_partition_query=True):
     items_found = True
 
     try:
-        # Get the base64-encoded sensor data from the 'Body' field
         body_encoded = item.get("Body", "")
-
-        # Skip if the Body field is empty
         if not body_encoded.strip():
             print("Skipping item with empty Body field.")
             continue
 
-        # Decode base64 data and parse it as JSON
         try:
             body_json = base64.b64decode(body_encoded).decode("utf-8")
             body_decoded = json.loads(body_json)
@@ -45,9 +42,16 @@ for item in container.query_items(query="SELECT * FROM c", enable_cross_partitio
             print(f"Invalid Body format: {decode_err}")
             continue
 
-        # Identify the type of sensor and timestamp
         sensor_type = body_decoded.get("sensor", "unknown")
+        event_type = body_decoded.get("event", "none")
         timestamp = body_decoded.get("timestamp", item.get("timestamp", "N/A"))
+
+        # Create a unique event ID to detect duplicates
+        event_id = f"{timestamp}_{sensor_type}_{event_type}"
+
+        if event_id in printed_events:
+            continue  # Skip already printed event
+        printed_events.add(event_id)
 
         # Handle acoustic sensor data
         if sensor_type == "acoustic":
@@ -69,7 +73,6 @@ for item in container.query_items(query="SELECT * FROM c", enable_cross_partitio
         elif sensor_type == "camera":
             image_data = body_decoded.get("image_base64")
             if image_data:
-                # Decode and save the image to the local images folder
                 image_bytes = base64.b64decode(image_data)
                 filename = f"camera_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
                 file_path = os.path.join(IMAGE_DIR, filename)
@@ -80,9 +83,9 @@ for item in container.query_items(query="SELECT * FROM c", enable_cross_partitio
                 print(f"{timestamp} | Image saved: {file_path}")
             else:
                 print(f"{timestamp} | Camera data found but missing 'image_base64' field.")
-            
-            # Handle threat event data
-        elif body_decoded.get("event") == "threat":
+
+        # Handle threat event data
+        elif event_type == "threat":
             score = body_decoded.get("score", "N/A")
             gps_latitude = body_decoded.get("gps_latitude", "N/A")
             gps_longitude = body_decoded.get("gps_longitude", "N/A")
@@ -90,12 +93,10 @@ for item in container.query_items(query="SELECT * FROM c", enable_cross_partitio
 
             print(f"{timestamp} | 🚨 Threat Event Detected! Score: {score}, Location: ({gps_latitude}, {gps_longitude}), Reason: {reason}")
 
-
         # Handle unknown sensor types
         else:
             print(f"{timestamp} | Unknown sensor type: {sensor_type}")
 
-    # Catch unexpected errors for a single telemetry item
     except Exception as e:
         print(f"Error processing item: {e}")
 

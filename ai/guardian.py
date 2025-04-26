@@ -7,8 +7,8 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ai.threats_ai import ThreatAI
+from ai.illuminator_ai import IlluminatorAI
 from ai.utils.ai_utils import AIUtils
-
 
 TOPICS = [
     ("petguardian/acoustic", 0),
@@ -20,12 +20,11 @@ TOPICS = [
 
 class GuardianAI:
     def __init__(self, client_id="guardian_core"):
-        
         self.ai = AIUtils(client_id="guardian_core")
         print(f"[MQTT] Using client_id: {client_id}")
 
-
         self.threat_ai = ThreatAI(client_id="threats_core")
+        self.illuminator_ai = IlluminatorAI(client_id="illuminator_core")
 
         self.enable_illuminator = False
         self.enable_threats = False
@@ -36,10 +35,9 @@ class GuardianAI:
     def load_feature_config(self):
         """Simulate loading config from Cosmos DB or another source."""
         try:
-            # Placeholder config fetch (replace with Cosmos fetch in future)
             config = {
-                "illuminator_enabled": False,
-                "threats_enabled": True  # ENABLE THREAT AI by default for testing
+                "illuminator_enabled": True,
+                "threats_enabled": False
             }
 
             self.enable_illuminator = config.get("illuminator_enabled", False)
@@ -61,13 +59,19 @@ class GuardianAI:
                 print(f"\n📡 MQTT: {topic}")
                 print(json.dumps(payload, indent=2))
 
-            # Route messages to Threat AI
             if self.enable_threats:
                 if topic == "petguardian/acoustic":
                     self.threat_ai.handle_acoustic_event(payload)
-
                 elif topic == "petguardian/gps":
                     self.threat_ai.handle_gps_event(payload)
+
+            if self.enable_illuminator:
+                if topic == "petguardian/imu":
+                    self.illuminator_ai.handle_imu_event(payload)
+                elif topic == "petguardian/lux":
+                    self.illuminator_ai.handle_lux_event(payload)
+                elif topic == "petguardian/gps":
+                    self.illuminator_ai.handle_gps_event(payload)
 
         except Exception as e:
             print(f"⚠️ Failed to parse or handle message: {e}")
@@ -120,7 +124,6 @@ class GuardianAI:
 
         if self.enable_illuminator:
             self.safe_start("IMU Listener", imu_sensor.start_imu_listener)
-            
 
         if self.enable_threats:
             self.safe_start("Acoustic Listener", acoustic_sensor.start_acoustic_listener)

@@ -9,7 +9,7 @@ DATABASE_NAME = "iotdata"
 CONTAINER_NAME = "telemetry"
 
 # Sensors to delete
-SENSOR_TYPES_TO_DELETE = {"acoustic", "gps", "lux", "imu", "camera", "threat"}
+SENSOR_TYPES_TO_DELETE = {"acoustic", "gps", "lux", "imu", "camera", "event"}
 
 def cleanup_cosmos():
     print("[🔗] Connecting to Cosmos DB...")
@@ -28,14 +28,16 @@ def cleanup_cosmos():
         try:
             decoded = json.loads(base64.b64decode(body_encoded).decode("utf-8"))
             sensor_type = decoded.get("sensor")
+            event_type = decoded.get("event")
 
-            if sensor_type in SENSOR_TYPES_TO_DELETE:
+            if (sensor_type in SENSOR_TYPES_TO_DELETE) or (event_type == "threat"):
                 container.delete_item(item=item['id'], partition_key=item['deviceId'])
-                print(f"[🗑️] Deleted item: {item['id']} ({sensor_type})")
+                print(f"[🗑️] Deleted item: {item['id']} ({sensor_type or event_type})")
                 deleted_count += 1
         except Exception as e:
             print(f"[⚠️] Skipped item due to error: {e}")
             continue
+
 
     print(f"\n✅ Cleanup complete. Deleted {deleted_count} items.")
 

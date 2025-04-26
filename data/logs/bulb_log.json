@@ -1,0 +1,52 @@
+[
+    {
+        "sensor": "bulb",
+        "timestamp": "2025-04-26 05:38:38",
+        "state": "on"
+    },
+    {
+        "sensor": "bulb",
+        "timestamp": "2025-04-26 05:38:49",
+        "state": "off"
+    },
+    {
+        "sensor": "bulb",
+        "timestamp": "2025-04-26 05:38:55",
+        "state": "on"
+    },
+    {
+        "sensor": "bulb",
+        "timestamp": "2025-04-26 05:39:06",
+        "state": "off"
+    },
+    {
+        "sensor": "bulb",
+        "timestamp": "2025-04-26 05:42:49",
+        "state": "on"
+    },
+    {
+        "sensor": "bulb",
+        "timestamp": "2025-04-26 05:42:59",
+        "state": "off"
+    },
+    {
+        "sensor": "bulb",
+        "timestamp": "2025-04-26 05:43:04",
+        "state": "on"
+    },
+    {
+        "sensor": "bulb",
+        "timestamp": "2025-04-26 05:43:15",
+        "state": "off"
+    },
+    {
+        "sensor": "bulb",
+        "timestamp": "2025-04-26 05:43:15",
+        "state": "on"
+    },
+    {
+        "sensor": "bulb",
+        "timestamp": "2025-04-26 05:43:26",
+        "state": "off"
+    }
+]

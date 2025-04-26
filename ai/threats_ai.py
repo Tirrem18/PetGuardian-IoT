@@ -29,7 +29,7 @@ class ThreatAI:
             "sound_cap": 5,
             "point_per_sound": 2,
             "sound_decay_interval": 10.0,
-            "threat_cooldown": 60,
+            "threat_cooldown": 30,
             "gps_check_cooldown": 10,
             "home_lat": 54.5742,
             "home_lon": -1.2345,
@@ -65,21 +65,20 @@ class ThreatAI:
     def evaluate_threat(self):
         now = time.time()
 
-        # 🧊 Use frozen acoustic_score if pending threat already detected
         if self.pending_threat:
-            acoustic_score = self.pending_threat["acoustic_score"]
+            try:
+                acoustic_score = float(self.pending_threat["acoustic_score"])
+            except (TypeError, ValueError):
+                acoustic_score = self.get_acoustic_score(now)
         else:
             acoustic_score = self.get_acoustic_score(now)
 
-        # 🛑 Early exit if acoustic score is still too low
-        if acoustic_score < self.config["sound_cap"]:
+        if float(acoustic_score) < float(self.config["sound_cap"]):
             print(f"[THREAT AI] Acoustic score {acoustic_score} < threshold.")
             return
 
-        # 🚀 If no GPS yet, we handle pending threat
         if self.last_gps is None:
             if self.pending_threat is None:
-                # ❄️ Freeze the acoustic score now
                 self.pending_threat = {
                     "acoustic_score": acoustic_score,
                     "timestamp": now
@@ -90,32 +89,28 @@ class ThreatAI:
                 elapsed = now - self.gps_wait_start
                 if elapsed > self.gps_wait_duration:
                     print("[THREAT AI] ⏱ GPS timeout reached. Assuming max GPS risk.")
-                    self.trigger_threat(acoustic_score + self.config["gps_cap"])
+                    self.trigger_threat(acoustic_score + self.config["gps_cap"], acoustic_score)
                     self.pending_threat = None
                 else:
                     print(f"[THREAT AI] ⏳ Waiting for GPS... {elapsed:.1f}s")
             return
 
-        # 🕰️ If GPS available, check cooldown
         if now - self.last_gps_check_time < self.gps_check_cooldown:
             print("[THREAT AI] ⏸ GPS check cooldown active.")
             return
 
         self.last_gps_check_time = now
         gps_score = self.get_gps_risk_score(self.last_gps)
-
-        # 🧠 Use the correct frozen acoustic score
-        total_score = round(acoustic_score + gps_score, 2)
+        total_score = round(float(acoustic_score) + gps_score, 2)
 
         if total_score >= self.config["threat_threshold"]:
-            self.trigger_threat(total_score)
-            self.pending_threat = None  # 🧹 Clear pending threat after triggered
+            self.trigger_threat(total_score, acoustic_score)
+            self.pending_threat = None
         else:
             print("[THREAT AI] 🔶 No threat triggered. Score below threshold.")
 
-
     def send_gps_trigger(self):
-        print("[THREAT AI] \U0001f6f0️ Sending GPS trigger...")
+        print("[THREAT AI] 🛰️ Sending GPS trigger...")
         for attempt in range(3):
             success = self.ai.publish("petguardian/trigger/gps", {
                 "command": "get_gps",
@@ -155,37 +150,43 @@ class ThreatAI:
                 "timestamp": time.time()
             }
             print("[THREAT AI] 🛰️ GPS location updated.")
+
             if self.pending_threat:
                 gps_score = self.get_gps_risk_score(self.last_gps)
-                total_score = round(self.pending_threat["acoustic_score"] + gps_score, 2)
+                acoustic_score = float(self.pending_threat["acoustic_score"])
+                total_score = round(acoustic_score + gps_score, 2)
 
-                # 💥 RECHECK TOTAL SCORE!!
                 if total_score >= self.config["threat_threshold"]:
-                    self.trigger_threat(total_score)
+                    self.trigger_threat(total_score, acoustic_score)
                 else:
                     print(f"[THREAT AI] 🔶 No threat triggered after GPS. Final score: {total_score}")
-                
+
                 self.pending_threat = None
+            else:
+                print("[THREAT AI] No pending threat active, skipping GPS handling.")
         except Exception as e:
             print(f"[THREAT AI] ⚠️ Invalid GPS payload: {e}")
 
-    def trigger_threat(self, score):
+    def trigger_threat(self, score, acoustic_score=None):
         timestamp = self.ai.get_timestamp()
         gps_data = self.last_gps or {"latitude": "unknown", "longitude": "unknown"}
         gps = (gps_data["latitude"], gps_data["longitude"])
 
-        # --- Detailed logging before triggering ---
-        acoustic_score = self.pending_threat["acoustic_score"] if self.pending_threat else "unknown"
-        gps_score = round(score - acoustic_score, 2) if acoustic_score != "unknown" else "unknown"
+        self.last_trigger_time = time.time()
 
+        if acoustic_score is None:
+            acoustic_score = "unknown"
 
-        # --- Determine reason based on GPS
-        if gps_score > 0:
+        if acoustic_score != "unknown":
+            gps_score = round(score - acoustic_score, 2)
+        else:
+            gps_score = "unknown"
+
+        if gps_score != "unknown" and gps_score > 0:
             reason = f"Threat score exceeded {self.config['threat_threshold']} due to sound and unsafe GPS location"
         else:
             reason = f"Threat score exceeded {self.config['threat_threshold']} due to sound alone"
 
-        
         photo_filename = f"{timestamp.replace(' ', '_').replace(':', '-')}.jpg"
 
         event = {
@@ -198,34 +199,26 @@ class ThreatAI:
             "image_filename": photo_filename
         }
 
-
-        # Save to local log file
         self.ai.log_locally("threat_log.json", event)
-
-        # --- Send the event to Azure and Cosmos ---
         self.ai.send_to_azure(event)
         self.ai.send_to_cosmos(event, tag="ai")
 
-        # --- Publish event and trigger camera ---
         self.ai.publish("petguardian/ai/event", event)
         self.ai.publish("petguardian/trigger/camera", {
             "command": "get_camera",
-            "timestamp": timestamp
+            "timestamp": timestamp,
+            "filename": photo_filename  # ✅ pass filename!
         })
 
 
         time.sleep(2)
-        
+
         print(f"\n[THREAT AI] 🚨 Threat Details:")
         print(f"   - Acoustic score (sound only): {acoustic_score}")
         print(f"   - GPS risk score (location risk): {gps_score}")
         print(f"   - ➔ Total combined threat score: {score}")
         print(f"   - ➔ {reason}")
 
-        time.sleep(2)
+        time.sleep(1)
 
         print(f"\n[THREAT AI] 🚨 Threat Logged with following: {event}\n\n")
-
-
-
-

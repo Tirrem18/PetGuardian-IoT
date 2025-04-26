@@ -102,13 +102,17 @@ def run_interactive_mode():
 def run_virtual_mode():
     time.sleep(2)
     print("\n[SIMULATION] Auto-generating IMU events...\n")
-    time.sleep(1)
     try:
         while True:
+            time.sleep(2)
+            print("\n[SIM] IMU reading simulated.")
+            handle_imu_event()
+            time.sleep(15)
+            handle_imu_event()
             for _ in range(3):
-                time.sleep(random.uniform(1, 3))
                 print("\n[SIM] IMU reading simulated.")
                 handle_imu_event()
+                time.sleep(5)
             print("[SIM] Cooling down for 120 seconds.")
             time.sleep(120)
     except KeyboardInterrupt:
@@ -127,6 +131,11 @@ def prompt_sensor_mode():
 
 def start_imu_listener():
     def _imu_run_thread():
+        # Ensure MQTT is connected before publishing
+        utils.mqtt_client.connect(utils.broker, utils.port, 60)
+        utils.mqtt_client.loop_start()
+        print("[MQTT] IMU sensor connected and publishing.")
+
         if USE_REAL_SENSOR and REAL_SENSOR:
             run_real_mode()
         else:
@@ -134,6 +143,7 @@ def start_imu_listener():
 
     thread = threading.Thread(target=_imu_run_thread, name="IMU_SensorThread", daemon=True)
     thread.start()
+
 
 
 # --- Local development / testing ---
