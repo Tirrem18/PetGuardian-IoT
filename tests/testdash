@@ -1,0 +1,41 @@
+
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from dashboard.util.dashboard_data import DashboardData
+
+from dashboard.util.dashboard_data import DashboardData
+
+def main():
+    # Step 1: Create DashboardData instance
+    data_handler = DashboardData()
+
+    # Step 2: Test loading dashboard settings
+    print("=== Dashboard Settings ===")
+    settings = data_handler.load_dashboard_settings()
+    print(settings)
+
+    # Step 3: Test loading Cosmos logs (live DB)
+    print("\n=== Fetching All Logs from CosmosDB ===")
+    cosmos_logs = data_handler.fetch_all_logs_from_cosmos()
+    if cosmos_logs:
+        print(f"Loaded {sum(len(v) for v in cosmos_logs.values())} logs in total.")
+        for key, value in cosmos_logs.items():
+            print(f"{key}: {len(value)} events")
+    else:
+        print("No logs found or error connecting to Cosmos.")
+
+    # Step 4: Test loading local illumination log
+    print("\n=== Loading Local Illumination Log ===")
+    local_illumination = data_handler.load_illumination_log_local()
+    print(f"Found {len(local_illumination)} illumination events locally.")
+
+    # Step 5: Test loading local threat log
+    print("\n=== Loading Local Threat Log ===")
+    local_threat = data_handler.load_threat_log_local()
+    print(f"Found {len(local_threat)} threat events locally.")
+
+if __name__ == "__main__":
+    main()

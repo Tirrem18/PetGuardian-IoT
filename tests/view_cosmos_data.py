@@ -58,6 +58,10 @@ for item in container.query_items(query="SELECT * FROM c", enable_cross_partitio
             event = body_decoded.get("event", "unknown_event")
             print(f"{timestamp} | Acoustic Event: {event}")
 
+        elif sensor_type == "bulb":
+            event = body_decoded.get("event", "unknown_event")
+            print(f"{timestamp} | Bulb Event: {event}")
+
         # Handle GPS sensor data
         elif sensor_type == "gps":
             lat = body_decoded.get("latitude", "N/A")
@@ -95,7 +99,9 @@ for item in container.query_items(query="SELECT * FROM c", enable_cross_partitio
 
         # Handle unknown sensor types
         else:
-            print(f"{timestamp} | Unknown sensor type: {sensor_type}")
+            print(f"{timestamp} | Unknown sensor type: {sensor_type}. Full event data:")
+            for key, value in body_decoded.items():
+                print(f"    {key}: {value}")
 
     except Exception as e:
         print(f"Error processing item: {e}")

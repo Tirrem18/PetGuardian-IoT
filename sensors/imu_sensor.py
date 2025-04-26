@@ -107,12 +107,12 @@ def run_virtual_mode():
             time.sleep(2)
             print("\n[SIM] IMU reading simulated.")
             handle_imu_event()
-            time.sleep(15)
+            time.sleep(12)
             handle_imu_event()
             for _ in range(3):
                 print("\n[SIM] IMU reading simulated.")
                 handle_imu_event()
-                time.sleep(5)
+                time.sleep(11)
             print("[SIM] Cooling down for 120 seconds.")
             time.sleep(120)
     except KeyboardInterrupt:

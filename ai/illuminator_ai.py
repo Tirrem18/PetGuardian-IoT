@@ -96,8 +96,12 @@ class IlluminatorAI:
                 return
 
             velocity_risk = min((self.last_velocity / self.velocity_threshold) * 2, self.velocity_risk_cap)
-            lux_darkness_factor = (100 - lux) / 1000
-            lux_risk = min(lux_darkness_factor * 4, self.lux_risk_cap)
+
+            if lux >= 75:
+                lux_risk = 0
+            else:
+                darkness_ratio = (75 - lux) / 74
+                lux_risk = min(darkness_ratio * self.lux_risk_cap, self.lux_risk_cap)
 
             combined_risk = velocity_risk + lux_risk
 
@@ -108,6 +112,7 @@ class IlluminatorAI:
                 self.pending_illumination = None
                 return
 
+            # Only if risk is high enough:
             self.pending_illumination = {
                 "velocity_risk": velocity_risk,
                 "lux_risk": lux_risk,
@@ -118,6 +123,7 @@ class IlluminatorAI:
 
         except Exception as e:
             print(f"[ILLUMINATOR AI] ⚠️ Failed to process Lux payload: {e}")
+
 
     def handle_gps_event(self, payload):
         try:
@@ -166,7 +172,7 @@ class IlluminatorAI:
             if total_score >= self.full_risk_threshold:
                 self.trigger_illuminator(total_score)
             else:
-                print("[ILLUMINATOR AI] 🔵 Threat score too low. No bulb activation.")
+                print("[ILLUMINATOR AI] 🔵 Threat score too low. No bulb activation.\n")
 
             self.pending_illumination = None
 
