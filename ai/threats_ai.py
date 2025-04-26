@@ -111,7 +111,7 @@ class ThreatAI:
 
     def send_gps_trigger(self):
         print("[THREAT AI] 🛰️ Sending GPS trigger...")
-        for attempt in range(3):
+        for attempt in range(5):
             success = self.ai.publish("petguardian/trigger/gps", {
                 "command": "get_gps",
                 "timestamp": self.ai.get_timestamp()
