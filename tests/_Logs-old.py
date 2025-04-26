@@ -4,11 +4,11 @@ from datetime import datetime
 import base64
 
 # --- Page Setup ---
-st.set_page_config(page_title="📚 Sensor Logs", layout="wide")
-st.title("📚 PetGuardian - All Sensor Logs")
+st.set_page_config(page_title="Sensor Logs", layout="wide")
+st.title("PetGuardian - All Sensor Logs")
 
 # Date Filter
-st.markdown("#### 📅 Filter logs by date")
+st.markdown("####  Filter logs by date")
 selected_date = st.date_input(" ", label_visibility="collapsed")
 
 # Fetch logs
@@ -32,17 +32,17 @@ for sensor, all_entries in logs.items():
             continue
         filtered.append(entry)
 
-    with st.expander(f"🔍 {sensor.capitalize()} Logs ({len(filtered)})", expanded=False):
+    with st.expander(f"{sensor.capitalize()} Logs ({len(filtered)})", expanded=False):
         if not filtered:
             st.info("No logs found for this sensor on selected date.")
         else:
             for i, log in enumerate(filtered, start=1):
-                st.markdown(f"---\n#### 📅 Entry {i} — `{log.get('timestamp', 'Unknown')}`")
+                st.markdown(f"---\n#### Entry {i} — `{log.get('timestamp', 'Unknown')}`")
                 for key, val in log.items():
                     if key == "image_base64" and val != "no_image":
                         try:
-                            st.image(base64.b64decode(val), caption="📸 Camera Snapshot", use_container_width=True)
+                            st.image(base64.b64decode(val), caption="Camera Snapshot", use_container_width=True)
                         except:
-                            st.warning("⚠️ Could not render image.")
+                            st.warning("Could not render image.")
                     elif key != "image_base64":
                         st.markdown(f"- **{key.replace('_', ' ').capitalize()}:** `{val}`")

@@ -34,7 +34,7 @@ utils = SensorUtils(
 
 # --- Event Logic ---
 def handle_sound_event():
-    print("[ACOUSTIC] 🔊 Sending sound event to MQTT...")
+    print("[ACOUSTIC] Sending sound event to MQTT...")
     timestamp = utils.get_timestamp()
     data = {
         "sensor": "acoustic",
@@ -96,7 +96,7 @@ def run_interactive_mode():
 
 # --- Start Acoustic Sensor in a Thread (for Collar Mode) ---
 def start_acoustic_listener():
-    print("[ACOUSTIC] 📡 Connecting MQTT from collar mode...")
+    print("[ACOUSTIC] Connecting MQTT from collar mode...")
     utils.mqtt_client.connect(utils.broker, utils.port, 60)
     utils.mqtt_client.loop_start()
 

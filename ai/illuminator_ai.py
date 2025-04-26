@@ -9,7 +9,7 @@ import json
 import time
 import math
 from ai.utils.ai_utils import AIUtils
-from dashboard.util.dashboard_data import DashboardData  # ✅ import your DashboardData
+from dashboard.util.dashboard_data import DashboardData  
 
 class IlluminatorAI:
     def __init__(self, client_id="illuminator_core"):
@@ -31,7 +31,7 @@ class IlluminatorAI:
         self.bulb_cooldown = self.config["bulb_cooldown"]
         self.home_lat = self.config["home_lat"]
         self.home_lon = self.config["home_lon"]
-        self.home_radius = self.config["safe_radius"]  # ✅ match field
+        self.home_radius = self.config["safe_radius"]  
         self.gps_weight_multiplier = self.config["gps_weight_multiplier"]
 
         # --- Cached Sensor Data ---
@@ -43,7 +43,7 @@ class IlluminatorAI:
         self.last_gps_check_time = 0
         self.last_bulb_trigger_time = 0
 
-        print("[ILLUMINATOR AI] ✅ IlluminatorAI initialized.")
+        print("[ILLUMINATOR AI] IlluminatorAI initialized.")
 
 
     def handle_imu_event(self, payload):
@@ -55,7 +55,7 @@ class IlluminatorAI:
                 ay = float(payload.get("accel_y", 0))
                 az = float(payload.get("accel_z", 0))
                 velocity = math.sqrt(ax**2 + ay**2 + az**2) * 0.1  # Scaling factor
-                print(f"[ILLUMINATOR AI] 🧮 Estimated velocity from accel: {velocity:.2f} m/s")
+                print(f"[ILLUMINATOR AI] Estimated velocity from accel: {velocity:.2f} m/s")
             else:
                 velocity = 0
             
@@ -63,16 +63,16 @@ class IlluminatorAI:
             now = time.time()
 
             if velocity < self.velocity_threshold:
-                print("[ILLUMINATOR AI] 🐢 Movement too slow. No Lux or GPS needed.")
+                print("[ILLUMINATOR AI] Movement too slow. No Lux or GPS needed.")
                 self.pending_illumination = None
                 return
 
-            print(f"[ILLUMINATOR AI] ⚡ Detected fast movement: {velocity:.2f} m/s ➔ Waiting for Lux reading...\n")
+            print(f"[ILLUMINATOR AI] Detected fast movement: {velocity:.2f} m/s ➔ Waiting for Lux reading...\n")
             self.send_lux_trigger()
 
 
         except Exception as e:
-            print(f"[ILLUMINATOR AI] ⚠️ Failed to process IMU payload: {e}")
+            print(f"[ILLUMINATOR AI] Failed to process IMU payload: {e}")
 
     def handle_lux_event(self, payload):
         try:
@@ -81,7 +81,7 @@ class IlluminatorAI:
             now = time.time()
 
             if self.last_velocity is None:
-                print("[ILLUMINATOR AI] 🚫 No velocity cached. Ignoring Lux event.\n")
+                print("[ILLUMINATOR AI] No velocity cached. Ignoring Lux event.\n")
                 return
 
             velocity_risk = min((self.last_velocity / self.velocity_threshold) * 2, self.velocity_risk_cap)
@@ -94,10 +94,10 @@ class IlluminatorAI:
 
             combined_risk = velocity_risk + lux_risk
 
-            print(f"[ILLUMINATOR AI] 📊 Velocity Risk: {velocity_risk:.2f}, Lux Risk: {lux_risk:.2f} ➔ Combined: {combined_risk:.2f}")
+            print(f"[ILLUMINATOR AI] Velocity Risk: {velocity_risk:.2f}, Lux Risk: {lux_risk:.2f} ➔ Combined: {combined_risk:.2f}")
 
             if combined_risk < self.mini_risk_threshold:
-                print("[ILLUMINATOR AI] 🔵 Combined risk too low. No GPS ping needed.")
+                print("[ILLUMINATOR AI] Combined risk too low. No GPS ping needed.")
                 self.pending_illumination = None
                 return
 
@@ -111,7 +111,7 @@ class IlluminatorAI:
             self.send_gps_trigger()
 
         except Exception as e:
-            print(f"[ILLUMINATOR AI] ⚠️ Failed to process Lux payload: {e}")
+            print(f"[ILLUMINATOR AI] Failed to process Lux payload: {e}")
 
 
     def handle_gps_event(self, payload):
@@ -125,16 +125,16 @@ class IlluminatorAI:
                 "longitude": lon,
                 "timestamp": now
             }
-            print("[ILLUMINATOR AI] 🛰️ GPS location updated.")
+            print("[ILLUMINATOR AI] GPS location updated.")
 
             if not self.pending_illumination:
-                print("[ILLUMINATOR AI] 🚫 No pending illumination event, ignoring GPS.")
+                print("[ILLUMINATOR AI] No pending illumination event, ignoring GPS.")
                 return
 
             self.evaluate_threat()
 
         except Exception as e:
-            print(f"[ILLUMINATOR AI] ⚠️ Failed to process GPS payload: {e}")
+            print(f"[ILLUMINATOR AI] Failed to process GPS payload: {e}")
 
     def evaluate_threat(self):
         try:
@@ -146,27 +146,27 @@ class IlluminatorAI:
             if self.last_gps is None:
                 elapsed = now - self.gps_wait_start
                 if elapsed > self.gps_wait_duration:
-                    print("[ILLUMINATOR AI] ⏱ GPS timeout reached. Assuming max GPS risk.")
+                    print("[ILLUMINATOR AI] GPS timeout reached. Assuming max GPS risk.")
                     gps_risk = self.gps_risk_cap
                 else:
-                    print(f"[ILLUMINATOR AI] ⏳ Waiting for GPS... {elapsed:.1f}s\n")
+                    print(f"[ILLUMINATOR AI] Waiting for GPS... {elapsed:.1f}s\n")
                     return
             else:
                 gps_risk = self.calculate_gps_risk(self.last_gps)
 
             total_score = round(velocity_risk + lux_risk + gps_risk, 2)
 
-            print(f"[ILLUMINATOR AI] 📈 Total Threat Score: {total_score:.2f}")
+            print(f"[ILLUMINATOR AI] Total Threat Score: {total_score:.2f}")
 
             if total_score >= self.full_risk_threshold:
                 self.trigger_illuminator(total_score)
             else:
-                print("[ILLUMINATOR AI] 🔵 Threat score too low. No bulb activation.\n")
+                print("[ILLUMINATOR AI] Threat score too low. No bulb activation.\n")
 
             self.pending_illumination = None
 
         except Exception as e:
-            print(f"[ILLUMINATOR AI] ⚠️ Threat evaluation failed: {e}")
+            print(f"[ILLUMINATOR AI] Threat evaluation failed: {e}")
 
     def calculate_gps_risk(self, gps):
         try:
@@ -181,7 +181,7 @@ class IlluminatorAI:
             c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
             distance = 6371000 * c  # meters
 
-            print(f"[ILLUMINATOR AI] 📏 Distance from home: {distance:.2f}m")
+            print(f"[ILLUMINATOR AI] Distance from home: {distance:.2f}m")
 
             if distance <= self.gps_safe_radius:
                 return 0
@@ -191,35 +191,35 @@ class IlluminatorAI:
             return gps_risk
 
         except Exception as e:
-            print(f"[ILLUMINATOR AI] ⚠️ GPS risk calculation failed: {e}")
+            print(f"[ILLUMINATOR AI] GPS risk calculation failed: {e}")
             return self.gps_risk_cap
 
     def send_gps_trigger(self):
-        print("[ILLUMINATOR AI] 🛰️ Sending GPS trigger...")
+        print("[ILLUMINATOR AI] Sending GPS trigger...")
         for attempt in range(3):
             success = self.ai.publish("petguardian/trigger/gps", {
                 "command": "get_gps",
                 "timestamp": self.ai.get_timestamp()
             })
             if success:
-                print("[ILLUMINATOR AI] ✅ GPS trigger published.")
+                print("[ILLUMINATOR AI] GPS trigger published.")
                 return
             time.sleep(0.5)
-        print("[ILLUMINATOR AI] ❌ Failed to publish GPS trigger.")
+        print("[ILLUMINATOR AI] Failed to publish GPS trigger.")
         
         
     def send_lux_trigger(self):
-        print("[ILLUMINATOR AI] 🔦 Sending Lux trigger...")
+        print("[ILLUMINATOR AI] Sending Lux trigger...")
         for attempt in range(3):
             success = self.ai.publish("petguardian/trigger/lux", {
                 "command": "get_lux",
                 "timestamp": self.ai.get_timestamp()
             })
             if success:
-                print("[ILLUMINATOR AI] ✅ Lux trigger published.\n")
+                print("[ILLUMINATOR AI] Lux trigger published.\n")
                 return
             time.sleep(0.5)
-        print("[ILLUMINATOR AI] ❌ Failed to publish Lux trigger.")
+        print("[ILLUMINATOR AI] Failed to publish Lux trigger.")
 
     def trigger_illuminator(self, threat_score):
         now = time.time()
@@ -247,4 +247,4 @@ class IlluminatorAI:
             "duration": 10
         })
 
-        print(f"\n[ILLUMINATOR AI] 💡 Bulb triggered with threat score {threat_score:.2f}\n")
+        print(f"\n[ILLUMINATOR AI] Bulb triggered with threat score {threat_score:.2f}\n")

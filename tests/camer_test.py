@@ -49,22 +49,22 @@ def fetch_camera_images():
                 print(f"[FETCH ERROR] {e}")
                 continue
     except Exception as e:
-        st.error(f"❌ Failed to connect or fetch from Cosmos: {e}")
+        st.error(f" Failed to connect or fetch from Cosmos: {e}")
     return images
 
 # --- Load images ---
 camera_images = fetch_camera_images()
 
 if not camera_images:
-    st.warning("⚠️ No camera images found in Cosmos.")
+    st.warning(" No camera images found in Cosmos.")
 else:
-    st.success(f"✅ Found {len(camera_images)} camera images.")
+    st.success(f" Found {len(camera_images)} camera images.")
 
     for idx, img in enumerate(camera_images):
-        st.markdown(f"### 🖼️ Image {idx + 1} – Captured at {img['timestamp']}")
+        st.markdown(f"###  Image {idx + 1} – Captured at {img['timestamp']}")
         try:
             image_bytes = base64.b64decode(img["image_base64"])
             st.image(image_bytes, width=500)
         except Exception as e:
-            st.error(f"⚠️ Failed to decode image {idx + 1}: {e}")
+            st.error(f" Failed to decode image {idx + 1}: {e}")
 

@@ -31,9 +31,9 @@ class AIUtils:
         try:
             self.client.connect(self.broker, self.port, 60)
             self.client.loop_start()
-            print("[MQTT] ✅ AIUtils MQTT client connected and loop started.")
+            print("[MQTT] AIUtils MQTT client connected and loop started.")
         except Exception as e:
-            print(f"[MQTT ERROR] ❌ Could not connect in AIUtils init: {e}")
+            print(f"[MQTT ERROR] Could not connect in AIUtils init: {e}")
 
         # --- Azure IoT Hub ---
         self.azure_conn = os.getenv("AZURE_CONN")

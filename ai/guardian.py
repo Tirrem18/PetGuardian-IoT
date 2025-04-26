@@ -33,7 +33,7 @@ class GuardianAI:
 
         self.load_feature_config()
 
-    from dashboard.util.dashboard_data import DashboardData  # ✅ add import
+    from dashboard.util.dashboard_data import DashboardData  
 
     def load_feature_config(self):
         """Load enable/disable modes from Cosmos Dashboard settings."""
@@ -57,7 +57,7 @@ class GuardianAI:
             topic = msg.topic
 
             if self.verbose:
-                print(f"\n📡 MQTT: {topic}")
+                print(f"\nMQTT: {topic}")
                 print(json.dumps(payload, indent=2))
 
             if self.enable_threats:
@@ -75,7 +75,7 @@ class GuardianAI:
                     self.illuminator_ai.handle_gps_event(payload)
 
         except Exception as e:
-            print(f"⚠️ Failed to parse or handle message: {e}")
+            print(f"Failed to parse or handle message: {e}")
 
     def start_mqtt_listener(self):
         topic_list = [topic for topic, _ in TOPICS]
@@ -97,27 +97,27 @@ class GuardianAI:
             try:
                 func()
             except Exception as e:
-                print(f" [GUARDIAN ERROR] ❌ {name} crashed with exception: {e}")
+                print(f" [GUARDIAN ERROR] {name} crashed with exception: {e}")
 
         try:
             thread = threading.Thread(target=run_wrapper, name=name, daemon=True)
             thread.start()
         except Exception as e:
-            print(f" [GUARDIAN ERROR] ❌ Failed to start {name}: {e}")
+            print(f" [GUARDIAN ERROR] Failed to start {name}: {e}")
 
     def listen_only(self):
-        print("\n👁️  Guardian AI (interactive mode)...")
+        print("\nGuardian AI (interactive mode)...")
         self.verbose = True
         self.ai.connect_and_listen(on_message=self.handle_ai_message, topics=TOPICS)
-        print("📡 Guardian is listening to MQTT topics...")
+        print("Guardian is listening to MQTT topics...")
         try:
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
-            print("\n👋 Guardian shutting down (test mode).")
+            print("\nGuardian shutting down (test mode).")
 
     def start(self):
-        print("\n🛡️ Guardian starting in collar mode (live system)...\n")
+        print("\nGuardian starting in collar mode (live system)...\n")
         self.verbose = False
         self.start_mqtt_listener()
 
@@ -134,12 +134,12 @@ class GuardianAI:
         self.safe_start("Camera Listener", camera_sensor.start_camera_listener)
         self.safe_start("GPS Listener", gps_sensor.start_gps_listener)
 
-        print("\n✅ Guardian AI sensors active.\n")
+        print("\nGuardian AI sensors active.\n")
         try:
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
-            print("\n👋 Guardian shutting down (collar mode).")
+            print("\nGuardian shutting down (collar mode).")
 
 def start_guardian():
     GuardianAI().start()

@@ -29,11 +29,11 @@ bulb_timer = None
 bulb_lock = threading.Lock()
 
 def turn_on_bulb():
-    print("[BULB] 💡 Bulb turned ON")
+    print("[BULB]  Bulb turned ON")
     log_bulb_event("on")
 
 def turn_off_bulb():
-    print("[BULB] ❌ Bulb turned OFF")
+    print("[BULB]  Bulb turned OFF")
     log_bulb_event("off")
 
 def log_bulb_event(state):
@@ -55,7 +55,7 @@ def restart_bulb_timer(duration):
             bulb_timer.cancel()
         bulb_timer = threading.Timer(duration, auto_turn_off)
         bulb_timer.start()
-        print(f"[BULB] 🕒 Timer set/reset for {duration} seconds.")
+        print(f"[BULB]  Timer set/reset for {duration} seconds.")
 
 def cancel_bulb_timer():
     global bulb_timer
@@ -63,7 +63,7 @@ def cancel_bulb_timer():
         if bulb_timer is not None:
             bulb_timer.cancel()
             bulb_timer = None
-            print("[BULB] 🛑 Timer cancelled.")
+            print("[BULB]  Timer cancelled.")
 
 def auto_turn_off():
     with bulb_lock:

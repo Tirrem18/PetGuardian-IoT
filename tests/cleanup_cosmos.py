@@ -12,11 +12,11 @@ CONTAINER_NAME = "telemetry"
 SENSOR_TYPES_TO_DELETE = {"acoustic", "gps", "lux", "imu", "camera", "bulb", "illumination", "event"}
 
 def cleanup_cosmos():
-    print("[🔗] Connecting to Cosmos DB...")
+    print("Connecting to Cosmos DB...")
     client = CosmosClient(COSMOS_URI, credential=COSMOS_KEY)
     db = client.get_database_client(DATABASE_NAME)
     container = db.get_container_client(CONTAINER_NAME)
-    print("[✅] Connected.")
+    print("Connected.")
 
     deleted_count = 0
 
@@ -35,11 +35,11 @@ def cleanup_cosmos():
                 print(f"[🗑️] Deleted item: {item['id']} ({sensor_type or event_type})")
                 deleted_count += 1
         except Exception as e:
-            print(f"[⚠️] Skipped item due to error: {e}")
+            print(f"Skipped item due to error: {e}")
             continue
 
 
-    print(f"\n✅ Cleanup complete. Deleted {deleted_count} items.")
+    print(f"\nCleanup complete. Deleted {deleted_count} items.")
 
 if __name__ == "__main__":
     cleanup_cosmos()
