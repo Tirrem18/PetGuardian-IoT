@@ -9,6 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from ai.threats_ai import ThreatAI
 from ai.illuminator_ai import IlluminatorAI
 from ai.utils.ai_utils import AIUtils
+from dashboard.util.dashboard_data import DashboardData
 
 TOPICS = [
     ("petguardian/acoustic", 0),
@@ -32,23 +33,23 @@ class GuardianAI:
 
         self.load_feature_config()
 
-    def load_feature_config(self):
-        """Simulate loading config from Cosmos DB or another source."""
-        try:
-            config = {
-                "illuminator_enabled": True,
-                "threats_enabled": False
-            }
+    from dashboard.util.dashboard_data import DashboardData  # ✅ add import
 
-            self.enable_illuminator = config.get("illuminator_enabled", False)
-            self.enable_threats = config.get("threats_enabled", False)
+    def load_feature_config(self):
+        """Load enable/disable modes from Cosmos Dashboard settings."""
+        try:
+            config = DashboardData().load_dashboard_settings()
+
+            self.enable_illuminator = config.get("illumination_mode", False)
+            self.enable_threats = config.get("threats_mode", False)
 
             print(f"[CONFIG] Illuminator enabled: {self.enable_illuminator}")
             print(f"[CONFIG] Threat detection enabled: {self.enable_threats}")
 
         except Exception as e:
             print(f"[CONFIG ERROR] Failed to load config: {e}")
-            print("[CONFIG] Using default settings (both off)")
+            print("[CONFIG] Using default settings (both disabled)")
+
 
     def handle_ai_message(self, client, userdata, msg):
         try:

@@ -2,14 +2,22 @@ import json
 import time
 import math
 from ai.utils.ai_utils import AIUtils
+from dashboard.util.dashboard_data import DashboardData
+
+
+import json
+import time
+import math
+from ai.utils.ai_utils import AIUtils
+from dashboard.util.dashboard_data import DashboardData  # ✅ import your DashboardData
 
 class IlluminatorAI:
     def __init__(self, client_id="illuminator_core"):
         self.ai = AIUtils(client_id=client_id)
         print(f"[ILLUMINATOR AI] Using client_id: {client_id}")
 
-        # --- Load Config ---
-        self.config = self.fetch_config_from_cosmos()
+        # --- Load Config from Cosmos using DashboardData ---
+        self.config = DashboardData().load_dashboard_settings()
 
         self.velocity_threshold = self.config["velocity_threshold"]
         self.velocity_risk_cap = self.config["velocity_risk_cap"]
@@ -23,7 +31,7 @@ class IlluminatorAI:
         self.bulb_cooldown = self.config["bulb_cooldown"]
         self.home_lat = self.config["home_lat"]
         self.home_lon = self.config["home_lon"]
-        self.home_radius = self.config["home_radius"]
+        self.home_radius = self.config["safe_radius"]  # ✅ match field
         self.gps_weight_multiplier = self.config["gps_weight_multiplier"]
 
         # --- Cached Sensor Data ---
@@ -36,25 +44,6 @@ class IlluminatorAI:
         self.last_bulb_trigger_time = 0
 
         print("[ILLUMINATOR AI] ✅ IlluminatorAI initialized.")
-
-    def fetch_config_from_cosmos(self):
-        print("[CONFIG] Loaded illuminator AI parameters (static fallback).")
-        return {
-            "velocity_threshold": 0.5,
-            "velocity_risk_cap": 4,
-            "lux_threshold": 200,
-            "lux_risk_cap": 4,
-            "gps_safe_radius": 30,
-            "gps_risk_cap": 3,
-            "mini_risk_threshold": 4.1,
-            "full_risk_threshold": 6.5,
-            "gps_wait_duration": 10,
-            "bulb_cooldown": 5,
-            "home_lat": 54.5742,
-            "home_lon": -1.2345,
-            "home_radius": 30,
-            "gps_weight_multiplier": 2
-        }
 
 
     def handle_imu_event(self, payload):

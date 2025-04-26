@@ -3,6 +3,7 @@
 import base64
 import json
 import os
+from datetime import datetime
 from dotenv import load_dotenv
 from azure.cosmos import CosmosClient
 
@@ -24,8 +25,6 @@ class DashboardData:
         self.threat_log_file = os.path.join(self.local_log_path, "threat_log.json")
 
         # Dashboard defaults
-        # inside your DashboardData class
-
         self.DEFAULTS = {
             # General
             "home_lat": 54.5742,
@@ -41,7 +40,7 @@ class DashboardData:
             "velocity_risk_cap": 4,
             "lux_threshold": 200,
             "lux_risk_cap": 4,
-            "gps_safe_radius": 30,  # duplicated but fine
+            "gps_safe_radius": 30,
             "gps_risk_cap": 3,
             "gps_weight_multiplier": 2,
             "mini_risk_threshold": 4.1,
@@ -59,7 +58,6 @@ class DashboardData:
             "distance_per_point": 10,
         }
 
-
     # COSMOS CONNECTION
     def get_cosmos_container(self, name=None):
         name = name or self.CONTAINER_NAME
@@ -69,13 +67,19 @@ class DashboardData:
 
     # CONFIG LOADING
     def load_dashboard_settings(self):
+        """Load settings from Cosmos, fallback to defaults, merge missing keys."""
         try:
             container = self.get_cosmos_container(name=self.CONFIG_CONTAINER)
             config_doc = container.read_item(item="dashboard_settings", partition_key="dashboard")
-            return config_doc.get("settings", self.DEFAULTS.copy())
+            loaded = config_doc.get("settings", {})
         except Exception as e:
             print(f"[CONFIG LOAD] Failed, using defaults. Reason: {e}")
-            return self.DEFAULTS.copy()
+            loaded = {}
+
+        # Merge missing keys
+        merged_config = self.DEFAULTS.copy()
+        merged_config.update(loaded)
+        return merged_config
 
     # CONFIG SAVING
     def save_dashboard_settings(self, settings_dict):
@@ -93,7 +97,7 @@ class DashboardData:
             print(f"[CONFIG SAVE] Failed to save settings. Reason: {e}")
             return False
 
-    # LOG FETCHING from Cosmos
+    # COSMOS LOG FETCHING
     def fetch_all_logs_from_cosmos(self):
         """Fetch threat and illumination events from Cosmos."""
         try:
@@ -129,15 +133,12 @@ class DashboardData:
 
     # LOCAL LOG FETCHING
     def load_threat_log_local(self):
-        """Load threat events from local file."""
         return self._load_local_log_file(self.threat_log_file)
 
     def load_illumination_log_local(self):
-        """Load illumination events from local file."""
         return self._load_local_log_file(self.illumination_log_file)
 
     def _load_local_log_file(self, filepath):
-        """Internal: load any local JSON log file."""
         if not os.path.exists(filepath):
             return []
         try:
@@ -147,3 +148,109 @@ class DashboardData:
             print(f"[LOCAL LOG ERROR] Failed to load {filepath}: {e}")
             return []
 
+    # Fallback Combined Fetch
+    def fetch_all_logs(self):
+        
+        """Try fetch from Cosmos, fallback to local if fails."""
+        try:
+            cosmos_logs = self.fetch_all_logs_from_cosmos()
+            if cosmos_logs["threats"] or cosmos_logs["illuminations"]:
+                return cosmos_logs
+        except Exception as e:
+            print(f"[FALLBACK] Error fetching Cosmos logs: {e}")
+
+        print("[FALLBACK] Loading local logs instead.")
+        return {
+            "threats": self.load_threat_log_local(),
+            "illuminations": self.load_illumination_log_local()
+        }
+    
+    def clean_duplicate_logs(self):
+        """Delete duplicate events based on timestamp and event type."""
+        try:
+            container = self.get_cosmos_container(name=self.CONTAINER_NAME)
+            
+            all_items = list(container.query_items("SELECT * FROM c", enable_cross_partition_query=True))
+
+            seen = set()
+            to_delete = []
+
+            for item in all_items:
+                try:
+                    encoded = item.get("Body", "")
+                    if not encoded.strip():
+                        continue
+                    decoded = json.loads(base64.b64decode(encoded).decode("utf-8"))
+                    timestamp = decoded.get("timestamp", "")
+                    event = decoded.get("event", "")
+
+                    key = (timestamp, event)
+
+                    if key in seen:
+                        to_delete.append(item["id"])  # Duplicate found
+                    else:
+                        seen.add(key)
+
+                except Exception as e:
+                    print()
+
+            print()
+
+            for doc_id in to_delete:
+                try:
+                    container.delete_item(item=doc_id, partition_key="collar01")  # 🛠 Adjust your partition key
+                    print()
+                except Exception as e:
+                    print()
+
+            print()
+
+        except Exception as e:
+            print()
+
+
+    # SORTING EVENTS
+    def sort_events_by_time(self, events):
+        """Sort events by timestamp descending (latest first)."""
+        try:
+            return sorted(events, key=lambda x: x.get("timestamp", ""), reverse=True)
+        except Exception as e:
+            print(f"[SORT ERROR] Failed to sort events: {e}")
+            return events
+
+    # (Optional) FILTER EVENTS by date
+    def filter_events_since(self, events, since_timestamp):
+        """Return only events after a given timestamp."""
+        try:
+            return [e for e in events if e.get("timestamp", "") > since_timestamp]
+        except Exception as e:
+            print(f"[FILTER ERROR] Failed to filter events: {e}")
+            return events
+
+    def find_matching_camera_for_threat(self, threat_timestamp, camera_logs):
+            """Find a camera log matching a threat timestamp."""
+            def extract_camera_timestamp(filename):
+                try:
+                    base = filename.replace('camera_', '').replace('.jpg', '')
+                    return datetime.strptime(base, "%Y%m%d_%H%M%S")
+                except Exception:
+                    return None
+
+            threat_time = datetime.strptime(threat_timestamp, "%Y-%m-%d %H:%M:%S")
+            closest_img = None
+            smallest_delta = float('inf')
+
+            for cam in camera_logs:
+                cam_filename = cam.get("filename") or cam.get("image_filename")
+                if not cam_filename:
+                    continue
+                cam_time = extract_camera_timestamp(cam_filename)
+                if not cam_time:
+                    continue
+
+                delta = abs((threat_time - cam_time).total_seconds())
+                if delta < 300 and delta < smallest_delta:  # 300 seconds = 5 minutes
+                    smallest_delta = delta
+                    closest_img = cam
+
+            return closest_img

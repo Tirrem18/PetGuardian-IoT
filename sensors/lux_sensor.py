@@ -49,13 +49,13 @@ def get_lux_reading():
             return scaled
         except Exception as e:
             print(f"[ERROR] BH1750 failed: {e}")
-            return random.randint(0, 100)
+            return random.randint(0, 500)
 
     elif INTERACTIVE_MODE:
-        val = input("Enter lux level (0–100): ").strip()
+        val = input("Enter lux level (0–500): ").strip()
         try:
             lux = int(val)
-            if 0 <= lux <= 100:
+            if 0 <= lux <= 500:
                 return lux
         except:
             pass

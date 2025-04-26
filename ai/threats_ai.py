@@ -2,13 +2,30 @@ import json
 import time
 import math
 from ai.utils.ai_utils import AIUtils
+from dashboard.util.dashboard_data import DashboardData 
 
 class ThreatAI:
     def __init__(self, client_id="threats_core"):
         self.ai = AIUtils(client_id=client_id)
         print(f"[THREAT AI] Using client_id: {client_id}")
 
-        self.config = self.fetch_config_from_cosmos()
+        # --- Load Config from Cosmos using DashboardData ---
+        self.config = DashboardData().load_dashboard_settings()
+
+        # Settings
+        self.threat_threshold = self.config["threat_threshold"]
+        self.sound_cap = self.config["sound_cap"]
+        self.point_per_sound = self.config["point_per_sound"]
+        self.sound_decay_interval = self.config["sound_decay_interval"]
+        self.cooldown = self.config["threat_cooldown"]
+        self.gps_check_cooldown = self.config["gps_check_cooldown"]
+        self.home_lat = self.config["home_lat"]
+        self.home_lon = self.config["home_lon"]
+        self.safe_radius = self.config["safe_radius"]
+        self.gps_risk_cap = self.config["gps_risk_cap"]
+        self.distance_per_point = self.config["distance_per_point"]
+
+        # Internal state
         self.acoustic_events = []
         self.last_gps = None
         self.last_trigger_time = 0
@@ -17,26 +34,8 @@ class ThreatAI:
         self.gps_wait_start = 0
         self.gps_wait_duration = 10  # seconds
 
-        self.cooldown = self.config["threat_cooldown"]
-        self.gps_check_cooldown = self.config["gps_check_cooldown"]
-
         print("[THREAT AI] ✅ ThreatAI class initialized.")
 
-    def fetch_config_from_cosmos(self):
-        print("[CONFIG] Loaded threat AI parameters (static fallback).")
-        return {
-            "threat_threshold": 8.0,
-            "sound_cap": 5,
-            "point_per_sound": 2,
-            "sound_decay_interval": 10.0,
-            "threat_cooldown": 30,
-            "gps_check_cooldown": 10,
-            "home_lat": 54.5742,
-            "home_lon": -1.2345,
-            "home_radius": 30,
-            "gps_cap": 10,
-            "distance_per_point": 10
-        }
 
     def handle_acoustic_event(self, payload):
         print("[THREAT AI] ⚡ Acoustic event received via MQTT")
@@ -89,7 +88,7 @@ class ThreatAI:
                 elapsed = now - self.gps_wait_start
                 if elapsed > self.gps_wait_duration:
                     print("[THREAT AI] ⏱ GPS timeout reached. Assuming max GPS risk.")
-                    self.trigger_threat(acoustic_score + self.config["gps_cap"], acoustic_score)
+                    self.trigger_threat(acoustic_score + self.config["gps_risk_cap"], acoustic_score)
                     self.pending_threat = None
                 else:
                     print(f"[THREAT AI] ⏳ Waiting for GPS... {elapsed:.1f}s")
@@ -128,19 +127,27 @@ class ThreatAI:
             lon1 = math.radians(gps["longitude"])
             lat2 = math.radians(self.config["home_lat"])
             lon2 = math.radians(self.config["home_lon"])
+
             dlat = lat2 - lat1
             dlon = lon2 - lon1
             a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
             c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-            distance = 6371000 * c
-            print(f"[THREAT AI] GPS distance from home: {distance:.2f}m")
-            if distance <= self.config["home_radius"]:
+            distance = 6371000 * c  # meters
+
+            print(f"[THREAT AI] 📏 Distance from home: {distance:.2f}m")
+
+            if distance <= self.config["safe_radius"]:
+                print("[THREAT AI] 🛡️ Inside safe zone. GPS risk = 0.")
                 return 0
-            score = distance / self.config["distance_per_point"]
-            return min(score, self.config["gps_cap"])
+
+            gps_risk = distance / self.config["distance_per_point"]
+            capped_risk = min(gps_risk, self.config["gps_risk_cap"])
+            print(f"[THREAT AI] 📈 GPS Risk Score: {capped_risk:.2f}")
+            return capped_risk
+
         except Exception as e:
             print(f"[THREAT AI] ❌ GPS scoring failed: {e}")
-            return self.config["gps_cap"]
+            return self.config["gps_risk_cap"]
 
     def handle_gps_event(self, payload):
         try:
@@ -156,16 +163,20 @@ class ThreatAI:
                 acoustic_score = float(self.pending_threat["acoustic_score"])
                 total_score = round(acoustic_score + gps_score, 2)
 
+                print(f"[THREAT AI] 📊 Total Score (Acoustic + GPS): {total_score:.2f}")
+
                 if total_score >= self.config["threat_threshold"]:
                     self.trigger_threat(total_score, acoustic_score)
                 else:
-                    print(f"[THREAT AI] 🔶 No threat triggered after GPS. Final score: {total_score}")
+                    print(f"[THREAT AI] 🔶 No threat triggered after GPS. Final score: {total_score:.2f}")
 
                 self.pending_threat = None
             else:
                 print("[THREAT AI] No pending threat active, skipping GPS handling.")
+
         except Exception as e:
             print(f"[THREAT AI] ⚠️ Invalid GPS payload: {e}")
+
 
     def trigger_threat(self, score, acoustic_score=None):
         timestamp = self.ai.get_timestamp()
@@ -222,3 +233,5 @@ class ThreatAI:
         time.sleep(1)
 
         print(f"\n[THREAT AI] 🚨 Threat Logged with following: {event}\n\n")
+
+        
