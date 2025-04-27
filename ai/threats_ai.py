@@ -1,6 +1,8 @@
 import json
 import time
 import math
+import joblib
+import numpy as np
 from ai.utils.ai_utils import AIUtils
 from dashboard.util.dashboard_data import DashboardData
 
@@ -9,6 +11,8 @@ class ThreatAI:
     def __init__(self, client_id="threats_core"):
         self.ai = AIUtils(client_id=client_id)
         print(f"[THREAT AI] Using client_id: {client_id}")
+        self.model = joblib.load("ai/models/threat_model.pkl")
+
 
         # --- Load Configuration from DashboardData (Cosmos DB) ---
         self.config = DashboardData().load_dashboard_settings()
@@ -60,9 +64,8 @@ class ThreatAI:
             value = max(0, self.point_per_sound - decay)
             score += value
 
-        capped_score = min(score, self.sound_cap)
-        print(f"[THREAT AI] Calculated acoustic score: {capped_score:.2f}")
-        return capped_score
+        print(f"[THREAT AI] Calculated acoustic score: {score:.2f}")
+        return score
 
     # --- Evaluate Total Threat (Acoustic + GPS) ---
     def evaluate_threat(self):
@@ -107,11 +110,15 @@ class ThreatAI:
         gps_score = self.get_gps_risk_score(self.last_gps)
         total_score = round(float(acoustic_score) + gps_score, 2)
 
-        if total_score >= self.threat_threshold:
+        # --- ML Model Prediction ---
+        input_features = np.array([[acoustic_score, gps_score]])
+        prediction = self.model.predict(input_features)
+
+        if prediction[0] == 1:
+            print("[THREAT AI] ML Model predicted THREAT.")
             self.trigger_threat(total_score, acoustic_score)
-            self.pending_threat = None
         else:
-            print("[THREAT AI] No threat triggered. Combined score below threshold.")
+            print("[THREAT AI] ML Model predicted NO THREAT.")
 
     # --- Request New GPS Reading via MQTT ---
     def send_gps_trigger(self):
@@ -176,7 +183,7 @@ class ThreatAI:
                 if total_score >= self.threat_threshold:
                     self.trigger_threat(total_score, acoustic_score)
                 else:
-                    print(f"[THREAT AI] Final score after GPS: {total_score:.2f} — No threat triggered.")
+                    print("[THREAT AI] ML Model predicted NO THREAT after GPS update. No further action taken.")
 
                 self.pending_threat = None
             else:
@@ -201,10 +208,11 @@ class ThreatAI:
         else:
             gps_score = "unknown"
 
-        if gps_score != "unknown" and gps_score > 0:
-            reason = f"Threat score exceeded {self.threat_threshold} due to sound and unsafe GPS location."
+        if gps_score != "unknown" and gps_score > 0.3:
+            reason = f"AI model predicted a threat based on sound and GPS risk."
         else:
-            reason = f"Threat score exceeded {self.threat_threshold} due to sound alone."
+            reason = f"AI model predicted a threat based on sound alone."
+
 
         photo_filename = f"{timestamp.replace(' ', '_').replace(':', '-')}.jpg"
 

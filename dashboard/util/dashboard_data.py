@@ -50,7 +50,7 @@ class DashboardData:
 
             # ThreatAI settings
             "threat_threshold": 8.0,
-            "sound_cap": 5,
+            "sound_cap": 4.1,
             "point_per_sound": 2,
             "sound_decay_interval": 10.0,
             "threat_cooldown": 30,

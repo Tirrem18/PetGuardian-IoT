@@ -37,33 +37,6 @@ for key, val in initial_settings.items():
     if key not in st.session_state:
         st.session_state[key] = val
 
-# --- Helper: Extract camera timestamp from filename ---
-def extract_camera_timestamp(filename):
-    try:
-        base = filename.replace('camera_', '').replace('.jpg', '')
-        return datetime.strptime(base, "%Y%m%d_%H%M%S")
-    except Exception:
-        return None
-
-# --- Helper: Find closest matching camera image for a threat event ---
-def find_matching_camera_image(threat_timestamp):
-    threat_time = datetime.strptime(threat_timestamp, "%Y-%m-%d %H:%M:%S")
-    closest_img = None
-    smallest_delta = float('inf')
-
-    for cam in camera_logs:
-        cam_filename = cam.get("filename") or cam.get("image_filename")
-        if not cam_filename:
-            continue
-        cam_time = extract_camera_timestamp(cam_filename)
-        if not cam_time:
-            continue
-        delta = abs((threat_time - cam_time).total_seconds())
-        if delta < 30 and delta < smallest_delta:
-            smallest_delta = delta
-            closest_img = cam
-
-    return closest_img
 
 # --- Select a threat event ---
 selected_data = None
