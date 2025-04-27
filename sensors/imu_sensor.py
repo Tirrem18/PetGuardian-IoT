@@ -140,7 +140,7 @@ def run_virtual_mode():
     try:
         while True:
             time.sleep(2)
-            print("\n[SIM] IMU reading simulated.")
+            print("\n[SIM] IMU reading simulated.\n")
             handle_imu_event()
             time.sleep(12)
             handle_imu_event()
