@@ -1,4 +1,4 @@
-# dashboard/util/dashboard_data.py
+# --- dashboard/util/dashboard_data.py ---
 
 import base64
 import json
@@ -7,24 +7,24 @@ from datetime import datetime
 from dotenv import load_dotenv
 from azure.cosmos import CosmosClient
 
-# Step 1: Load environment variables from .env
+# --- Load environment variables ---
 load_dotenv()
 
 class DashboardData:
     def __init__(self):
-        # Step 2: Read settings from environment
+        # --- Read settings from environment ---
         self.COSMOS_URI = os.getenv("COSMOS_URI")
         self.COSMOS_KEY = os.getenv("COSMOS_KEY")
         self.DATABASE_NAME = os.getenv("COSMOS_DB", "iotdata")
         self.CONTAINER_NAME = os.getenv("COSMOS_CONTAINER", "telemetry")
         self.CONFIG_CONTAINER = "config"
 
-        # Local logs fallback
+        # --- Local fallback paths ---
         self.local_log_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "logs"))
         self.illumination_log_file = os.path.join(self.local_log_path, "illumination_log.json")
         self.threat_log_file = os.path.join(self.local_log_path, "threat_log.json")
 
-        # Dashboard defaults
+        # --- Dashboard Defaults ---
         self.DEFAULTS = {
             # General
             "home_lat": 54.5742,
@@ -58,16 +58,16 @@ class DashboardData:
             "distance_per_point": 10,
         }
 
-    # COSMOS CONNECTION
+    # --- COSMOS CONNECTION ---
     def get_cosmos_container(self, name=None):
         name = name or self.CONTAINER_NAME
         client = CosmosClient(self.COSMOS_URI, credential=self.COSMOS_KEY)
         db = client.get_database_client(self.DATABASE_NAME)
         return db.get_container_client(name)
 
-    # CONFIG LOADING
+    # --- CONFIG LOADING ---
     def load_dashboard_settings(self):
-        """Load settings from Cosmos, fallback to defaults, merge missing keys."""
+        """Load settings from Cosmos. Fallback to defaults if needed."""
         try:
             container = self.get_cosmos_container(name=self.CONFIG_CONTAINER)
             config_doc = container.read_item(item="dashboard_settings", partition_key="dashboard")
@@ -76,13 +76,13 @@ class DashboardData:
             print(f"[CONFIG LOAD] Failed, using defaults. Reason: {e}")
             loaded = {}
 
-        # Merge missing keys
         merged_config = self.DEFAULTS.copy()
         merged_config.update(loaded)
         return merged_config
 
-    # CONFIG SAVING
+    # --- CONFIG SAVING ---
     def save_dashboard_settings(self, settings_dict):
+        """Save settings back to Cosmos."""
         try:
             container = self.get_cosmos_container(name=self.CONFIG_CONTAINER)
             doc = {
@@ -97,13 +97,12 @@ class DashboardData:
             print(f"[CONFIG SAVE] Failed to save settings. Reason: {e}")
             return False
 
-        # COSMOS LOG FETCHING
+    # --- FETCH ALL LOGS FROM COSMOS ---
     def fetch_all_logs_from_cosmos(self):
-        """Fetch threat, illumination, and all sensor logs from Cosmos."""
+        """Fetch threat, illumination, and sensor logs from Cosmos."""
         try:
             container = self.get_cosmos_container(name=self.CONTAINER_NAME)
 
-            # Initialize categories
             logs = {
                 "threats": [],
                 "illuminations": [],
@@ -125,23 +124,12 @@ class DashboardData:
                     event = decoded.get("event", "").lower()
                     sensor = decoded.get("sensor", "").lower()
 
-                    # Sort based on event or sensor type
                     if event == "threat":
                         logs["threats"].append(decoded)
                     elif event == "illumination":
                         logs["illuminations"].append(decoded)
-                    elif sensor == "camera":
-                        logs["camera"].append(decoded)
-                    elif sensor == "bulb":
-                        logs["bulb"].append(decoded)
-                    elif sensor == "imu":
-                        logs["imu"].append(decoded)
-                    elif sensor == "lux":
-                        logs["lux"].append(decoded)
-                    elif sensor == "gps":
-                        logs["gps"].append(decoded)
-                    elif sensor == "acoustic":
-                        logs["acoustic"].append(decoded)
+                    elif sensor in logs:
+                        logs[sensor].append(decoded)
                     else:
                         print(f"[UNKNOWN LOG TYPE] {decoded}")
 
@@ -164,7 +152,7 @@ class DashboardData:
                 "acoustic": []
             }
 
-    # LOCAL LOG FETCHING
+    # --- LOCAL LOG FETCHING ---
     def load_threat_log_local(self):
         return self._load_local_log_file(self.threat_log_file)
 
@@ -181,10 +169,9 @@ class DashboardData:
             print(f"[LOCAL LOG ERROR] Failed to load {filepath}: {e}")
             return []
 
-    # Fallback Combined Fetch
+    # --- FETCH ALL LOGS ---
     def fetch_all_logs(self):
-        
-        """Try fetch from Cosmos, fallback to local if fails."""
+        """Try fetching logs from Cosmos first. Fallback to local."""
         try:
             cosmos_logs = self.fetch_all_logs_from_cosmos()
             if cosmos_logs["threats"] or cosmos_logs["illuminations"]:
@@ -197,12 +184,12 @@ class DashboardData:
             "threats": self.load_threat_log_local(),
             "illuminations": self.load_illumination_log_local()
         }
-    
+
+    # --- CLEAN DUPLICATE LOGS ---
     def clean_duplicate_logs(self):
         """Delete duplicate events based on timestamp and event type."""
         try:
             container = self.get_cosmos_container(name=self.CONTAINER_NAME)
-            
             all_items = list(container.query_items("SELECT * FROM c", enable_cross_partition_query=True))
 
             seen = set()
@@ -214,57 +201,48 @@ class DashboardData:
                     if not encoded.strip():
                         continue
                     decoded = json.loads(base64.b64decode(encoded).decode("utf-8"))
-                    timestamp = decoded.get("timestamp", "")
-                    event = decoded.get("event", "")
-
-                    key = (timestamp, event)
+                    key = (decoded.get("timestamp", ""), decoded.get("event", ""))
 
                     if key in seen:
-                        to_delete.append(item["id"])  # Duplicate found
+                        to_delete.append(item["id"])
                     else:
                         seen.add(key)
 
-                except Exception as e:
-                    print()
-
-            print()
+                except:
+                    continue
 
             for doc_id in to_delete:
                 try:
-                    container.delete_item(item=doc_id, partition_key="collar01")  # 🛠 Adjust your partition key
-                    print()
-                except Exception as e:
-                    print()
+                    container.delete_item(item=doc_id, partition_key="collar01")
+                except:
+                    continue
 
-            print()
+        except Exception:
+            pass
 
-        except Exception as e:
-            print()
-
-
-    # SORTING EVENTS
+    # --- SORT EVENTS BY TIME ---
     def sort_events_by_time(self, events):
-        """Sort events by timestamp descending (latest first)."""
+        """Sort events by timestamp (latest first)."""
         try:
             return sorted(events, key=lambda x: x.get("timestamp", ""), reverse=True)
         except Exception as e:
             print(f"[SORT ERROR] Failed to sort events: {e}")
             return events
 
-    # (Optional) FILTER EVENTS by date
+    # --- FILTER EVENTS AFTER TIMESTAMP ---
     def filter_events_since(self, events, since_timestamp):
-        """Return only events after a given timestamp."""
+        """Filter events after a given timestamp."""
         try:
             return [e for e in events if e.get("timestamp", "") > since_timestamp]
         except Exception as e:
             print(f"[FILTER ERROR] Failed to filter events: {e}")
             return events
 
+    # --- FIND CAMERA IMAGE CLOSEST TO THREAT TIME ---
     def find_matching_camera_for_threat(self, threat_timestamp, camera_logs):
-        """Find the camera image closest to the threat timestamp."""
+        """Find closest camera image to the threat timestamp."""
         try:
             threat_time = datetime.strptime(threat_timestamp, "%Y-%m-%d %H:%M:%S")
-
             closest_img = None
             smallest_delta = float('inf')
 
@@ -277,12 +255,12 @@ class DashboardData:
                     cam_time = datetime.strptime(cam_ts_str, "%Y-%m-%d %H:%M:%S")
                     delta = abs((threat_time - cam_time).total_seconds())
 
-                    if delta <= 15 and delta < smallest_delta:  # <= 15 seconds allowed
+                    if delta <= 15 and delta < smallest_delta:
                         smallest_delta = delta
                         closest_img = cam
 
                 except Exception as e:
-                    print(f"[CAMERA MATCH ERROR] Failed parsing camera timestamp: {e}")
+                    print(f"[CAMERA MATCH ERROR] {e}")
                     continue
 
             if closest_img:
@@ -295,10 +273,10 @@ class DashboardData:
         except Exception as e:
             print(f"[MATCHING ERROR] {e}")
             return None
-            
 
+    # --- FETCH ALL CAMERA LOGS ---
     def fetch_all_camera_logs(self):
-        """Fetch all camera sensor events directly from Cosmos."""
+        """Fetch all camera sensor events."""
         try:
             container = self.get_cosmos_container(name=self.CONTAINER_NAME)
             camera_logs = []
@@ -323,4 +301,3 @@ class DashboardData:
         except Exception as e:
             print(f"[CAMERA LOG FETCH ERROR] {e}")
             return []
-

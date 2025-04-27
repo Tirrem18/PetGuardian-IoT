@@ -10,7 +10,7 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from util.dashboard_data import DashboardData
 
-# --- Page Config ---
+# --- Streamlit Page Config ---
 st.set_page_config(page_title="PetGuardian - All Logs", layout="wide")
 st.title("🐾 PetGuardian - All Sensor Logs")
 
@@ -19,17 +19,13 @@ data_handler = DashboardData()
 
 # --- Load All Logs ---
 logs = data_handler.fetch_all_logs()
-
-# Try to fetch camera logs separately if not bundled
 camera_logs = data_handler.fetch_all_camera_logs()
-
-# Merge camera into the main log dictionary
-logs["camera"] = camera_logs
+logs["camera"] = camera_logs  # Merge camera logs into main dictionary
 
 # --- Sensor Types to Display ---
 sensor_types = ["threats", "illuminations", "camera", "bulb", "imu", "lux", "gps", "acoustic"]
 
-# --- UI Date Filter ---
+# --- UI: Date Filter ---
 st.markdown("#### Filter logs by date")
 selected_date = st.date_input(" ", label_visibility="collapsed")
 
@@ -53,7 +49,7 @@ for sensor in sensor_types:
             continue
         filtered.append(entry)
 
-    # Display each sensor section
+    # Display entries
     with st.expander(f"**{sensor.capitalize()} Logs ({len(filtered)})**", expanded=False):
         if not filtered:
             st.info(f"No logs found for {sensor} on selected date.")
@@ -65,7 +61,7 @@ for sensor in sensor_types:
                         try:
                             image_bytes = base64.b64decode(val)
                             st.image(image_bytes, caption="Camera Snapshot", use_container_width=True)
-                        except Exception as e:
+                        except Exception:
                             st.warning("⚠️ Could not render image.")
                     elif key != "image_base64":
                         st.markdown(f"- **{key.replace('_', ' ').capitalize()}:** `{val}`")
