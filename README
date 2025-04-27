@@ -1,4 +1,4 @@
-# 📘 PetGuardian IoT - README
+# PetGuardian IoT - README
 
 ## Overview
 PetGuardian is a modular IoT system simulating a smart collar for outdoor pet safety.  
@@ -9,7 +9,7 @@ Both real hardware and virtual simulation are supported.
 > Update your `.env` file to configure sensor modes (`True` or `False`).
 
 
-## 🚀 Quick Start
+## Quick Start
 **Start Live Collar Mode:**
 python main.py
 
@@ -23,7 +23,7 @@ python guardian.py
 python dashboard/dashboard.py
 
 
-## 🔄 Sensor Scripts - Interactive Mode
+## Sensor Scripts - Interactive Mode
 
 Each sensor (`gps_sensor.py`, `camera_sensor.py`, etc.) can run alone for testing.
 
@@ -47,7 +47,7 @@ Outputs:
 - Azure IoT Hub + Cosmos DB
 
 
-## 🧪 MQTT Test Triggers
+## MQTT Test Triggers
 
 When running `guardian.py`, send MQTT messages to simulate events:
 
@@ -59,7 +59,7 @@ When running `guardian.py`, send MQTT messages to simulate events:
 
 Use HiveMQ, MQTT Explorer, or Python script to publish these.
 
-## 📂 Folder Structure
+## Folder Structure
 
 PetGuardian-IoT/
 ├── ai/                # AI controllers (guardian.py, threats_ai.py)
@@ -73,7 +73,7 @@ PetGuardian-IoT/
 └── main.py            # Start system in live collar mode
 
 
-## 📋 Notes
+## Notes
 - All scripts support both **Real** and **Virtual** sensor modes via `.env`.
 - Threads are used to prevent blocking during sensor listening.
 - Full Azure integration: IoT Hub + Cosmos DB storage.
