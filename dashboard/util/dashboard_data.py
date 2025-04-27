@@ -38,7 +38,7 @@ class DashboardData:
             # IlluminatorAI settings
             "velocity_threshold": 0.5,
             "velocity_risk_cap": 4,
-            "lux_threshold": 200,
+            "lux_threshold": 500,
             "lux_risk_cap": 4,
             "gps_safe_radius": 30,
             "gps_risk_cap": 3,
@@ -97,13 +97,23 @@ class DashboardData:
             print(f"[CONFIG SAVE] Failed to save settings. Reason: {e}")
             return False
 
-    # COSMOS LOG FETCHING
+        # COSMOS LOG FETCHING
     def fetch_all_logs_from_cosmos(self):
-        """Fetch threat and illumination events from Cosmos."""
+        """Fetch threat, illumination, and all sensor logs from Cosmos."""
         try:
             container = self.get_cosmos_container(name=self.CONTAINER_NAME)
-            threat_logs = []
-            illumination_logs = []
+
+            # Initialize categories
+            logs = {
+                "threats": [],
+                "illuminations": [],
+                "camera": [],
+                "bulb": [],
+                "imu": [],
+                "lux": [],
+                "gps": [],
+                "acoustic": []
+            }
 
             for item in container.query_items("SELECT * FROM c", enable_cross_partition_query=True):
                 try:
@@ -111,25 +121,48 @@ class DashboardData:
                     if not encoded.strip():
                         continue
                     decoded = json.loads(base64.b64decode(encoded).decode("utf-8"))
-                    event_type = decoded.get("event", "unknown")
 
-                    if event_type == "threat":
-                        threat_logs.append(decoded)
-                    elif event_type == "illumination":
-                        illumination_logs.append(decoded)
+                    event = decoded.get("event", "").lower()
+                    sensor = decoded.get("sensor", "").lower()
+
+                    # Sort based on event or sensor type
+                    if event == "threat":
+                        logs["threats"].append(decoded)
+                    elif event == "illumination":
+                        logs["illuminations"].append(decoded)
+                    elif sensor == "camera":
+                        logs["camera"].append(decoded)
+                    elif sensor == "bulb":
+                        logs["bulb"].append(decoded)
+                    elif sensor == "imu":
+                        logs["imu"].append(decoded)
+                    elif sensor == "lux":
+                        logs["lux"].append(decoded)
+                    elif sensor == "gps":
+                        logs["gps"].append(decoded)
+                    elif sensor == "acoustic":
+                        logs["acoustic"].append(decoded)
+                    else:
+                        print(f"[UNKNOWN LOG TYPE] {decoded}")
 
                 except Exception as e:
                     print(f"[COSMOS LOG FETCH] Error decoding item: {e}")
                     continue
 
-            return {
-                "threats": threat_logs,
-                "illuminations": illumination_logs
-            }
+            return logs
 
         except Exception as e:
             print(f"[LOG FETCH] Failed to fetch logs from Cosmos: {e}")
-            return {"threats": [], "illuminations": []}
+            return {
+                "threats": [],
+                "illuminations": [],
+                "camera": [],
+                "bulb": [],
+                "imu": [],
+                "lux": [],
+                "gps": [],
+                "acoustic": []
+            }
 
     # LOCAL LOG FETCHING
     def load_threat_log_local(self):
@@ -228,29 +261,66 @@ class DashboardData:
             return events
 
     def find_matching_camera_for_threat(self, threat_timestamp, camera_logs):
-            """Find a camera log matching a threat timestamp."""
-            def extract_camera_timestamp(filename):
-                try:
-                    base = filename.replace('camera_', '').replace('.jpg', '')
-                    return datetime.strptime(base, "%Y%m%d_%H%M%S")
-                except Exception:
-                    return None
-
+        """Find the camera image closest to the threat timestamp."""
+        try:
             threat_time = datetime.strptime(threat_timestamp, "%Y-%m-%d %H:%M:%S")
+
             closest_img = None
             smallest_delta = float('inf')
 
             for cam in camera_logs:
-                cam_filename = cam.get("filename") or cam.get("image_filename")
-                if not cam_filename:
-                    continue
-                cam_time = extract_camera_timestamp(cam_filename)
-                if not cam_time:
+                cam_ts_str = cam.get("timestamp", None)
+                if not cam_ts_str:
                     continue
 
-                delta = abs((threat_time - cam_time).total_seconds())
-                if delta < 300 and delta < smallest_delta:  # 300 seconds = 5 minutes
-                    smallest_delta = delta
-                    closest_img = cam
+                try:
+                    cam_time = datetime.strptime(cam_ts_str, "%Y-%m-%d %H:%M:%S")
+                    delta = abs((threat_time - cam_time).total_seconds())
+
+                    if delta <= 15 and delta < smallest_delta:  # <= 15 seconds allowed
+                        smallest_delta = delta
+                        closest_img = cam
+
+                except Exception as e:
+                    print(f"[CAMERA MATCH ERROR] Failed parsing camera timestamp: {e}")
+                    continue
+
+            if closest_img:
+                print(f"[MATCH FOUND] Closest camera at {closest_img.get('timestamp', 'unknown')} (Δ {smallest_delta}s)")
+            else:
+                print("[MATCH NOT FOUND] No camera image within 15s of threat event.")
 
             return closest_img
+
+        except Exception as e:
+            print(f"[MATCHING ERROR] {e}")
+            return None
+            
+
+    def fetch_all_camera_logs(self):
+        """Fetch all camera sensor events directly from Cosmos."""
+        try:
+            container = self.get_cosmos_container(name=self.CONTAINER_NAME)
+            camera_logs = []
+
+            for item in container.query_items("SELECT * FROM c", enable_cross_partition_query=True):
+                try:
+                    encoded = item.get("Body", "")
+                    if not encoded.strip():
+                        continue
+
+                    decoded = json.loads(base64.b64decode(encoded).decode("utf-8"))
+                    if decoded.get("sensor") == "camera":
+                        camera_logs.append(decoded)
+
+                except Exception as e:
+                    print(f"[CAMERA FETCH ERROR] {e}")
+                    continue
+
+            print(f"[CAMERA FETCH] Fetched {len(camera_logs)} camera events.")
+            return camera_logs
+
+        except Exception as e:
+            print(f"[CAMERA LOG FETCH ERROR] {e}")
+            return []
+
