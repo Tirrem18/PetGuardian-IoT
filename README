@@ -1,5 +1,5 @@
 # PetGuardian IoT - README
-
+Group IoT Project by Jacob Merritt, Samuel Winter and Joshua Bentley
 ## Overview
 PetGuardian is a modular IoT system simulating a smart collar for outdoor pet safety.  
 It uses active and passive sensors to detect environmental risks and control devices like LEDs and cameras.  
